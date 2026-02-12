@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Blast Game</title>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            border: 1px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="game" width="600" height="800"></canvas>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+
+        const GRID_SIZE = 8;
+        const CELL_SIZE = 50;
+        const GRID_X = 100;
+        const GRID_Y = 100;
+        const PIECE_AREAS = [
+            {x: 50, y: 600, w: 150, h: 150},
+            {x: 225, y: 600, w: 150, h: 150},
+            {x: 400, y: 600, w: 150, h: 150}
+        ];
+
+        const blockImages = [];
+        for (let i = 1; i <= 5; i++) {
+            blockImages[i] = new Image();
+        }
+        blockImages[1].src = "https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block1_rgsmm5.png";
+        blockImages[2].src = "https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block2_bctdq8.png";
+        blockImages[3].src = "https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block3_lt4n75.png";
+        blockImages[4].src = "https://res.cloudinary.com/dsutaioqw/image/upload/v1770908102/block4_h3yano.png";
+        blockImages[5].src = "https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block5_d0pye8.png";
+
+        let grid = Array.from({length: GRID_SIZE}, () => Array(GRID_SIZE).fill(0));
+        let score = 0;
+        let highScore = 0;
+        let pieces = [];
+        let dragging = null;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        const shapes = [
+            {shape: [[0,0]], w:1, h:1}, // single
+            {shape: [[0,0],[1,0]], w:2, h:1}, // 2 horizontal
+            {shape: [[0,0],[0,1]], w:1, h:2}, // 2 vertical
+            {shape: [[0,0],[1,0],[2,0]], w:3, h:1}, // 3 horizontal
+            {shape: [[0,0],[0,1],[0,2]], w:1, h:3}, // 3 vertical
+            {shape: [[0,0],[1,0],[0,1]], w:2, h:2}, // L3
+            {shape: [[0,0],[1,0],[1,1]], w:2, h:2}, // L3 rotated
+            {shape: [[0,0],[0,1],[1,1]], w:2, h:2}, // L3 rotated
+            {shape: [[0,0],[0,1],[-1,1]], w:2, h:2}, // L3 flipped
+            {shape: [[0,0],[1,0],[0,1],[1,1]], w:2, h:2}, // 2x2 square
+            {shape: [[0,0],[1,0],[2,0],[3,0]], w:4, h:1}, // 4 horizontal
+            {shape: [[0,0],[0,1],[0,2],[0,3]], w:1, h:4}, // 4 vertical
+            // Add more shapes as needed
+        ];
+
+        function generatePieces() {
+            pieces = [];
+            for (let i = 0; i < 3; i++) {
+                let shapeIdx = Math.floor(Math.random() * shapes.length);
+                let color = Math.floor(Math.random() * 5) + 1;
+                let piece = {shape: shapes[shapeIdx], color: color};
+                pieces.push(piece);
+            }
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(GRID_X, GRID_Y + i * CELL_SIZE);
+                ctx.lineTo(GRID_X + GRID_SIZE * CELL_SIZE, GRID_Y + i * CELL_SIZE);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(GRID_X + i * CELL_SIZE, GRID_Y);
+                ctx.lineTo(GRID_X + i * CELL_SIZE, GRID_Y + GRID_SIZE * CELL_SIZE);
+                ctx.stroke();
+            }
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (grid[y][x]) {
+                        ctx.drawImage(blockImages[grid[y][x]], GRID_X + x * CELL_SIZE, GRID_Y + y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    }
+                }
+            }
+        }
+
+        function drawPieces() {
+            for (let i = 0; i < pieces.length; i++) {
+                let p = pieces[i];
+                let area = PIECE_AREAS[i];
+                let scale = Math.min(area.w / (p.shape.w * CELL_SIZE), area.h / (p.shape.h * CELL_SIZE));
+                let pw = p.shape.w * CELL_SIZE * scale;
+                let ph = p.shape.h * CELL_SIZE * scale;
+                let px = area.x + (area.w - pw) / 2;
+                let py = area.y + (area.h - ph) / 2;
+                p.pos = {x: px, y: py, scale: scale};
+                p.origPos = {x: px, y: py, scale: scale};
+                for (let b of p.shape.shape) {
+                    ctx.drawImage(blockImages[p.color], px + b[0] * CELL_SIZE * scale, py + b[1] * CELL_SIZE * scale, CELL_SIZE * scale, CELL_SIZE * scale);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            if (dragging !== null) {
+                let p = pieces[dragging];
+                for (let b of p.shape.shape) {
+                    ctx.drawImage(blockImages[p.color], p.pos.x + b[0] * CELL_SIZE * p.pos.scale, p.pos.y + b[1] * CELL_SIZE * p.pos.scale, CELL_SIZE * p.pos.scale, CELL_SIZE * p.pos.scale);
+                }
+            }
+            drawPieces();
+            ctx.fillStyle = '#fff';
+            ctx.font = '30px Arial';
+            ctx.fillText('Score: ' + score, 10, 50);
+            ctx.fillText('High: ' + highScore, 400, 50);
+        }
+
+        function isValidPlacement(p, gx, gy) {
+            for (let b of p.shape.shape) {
+                let x = gx + b[0];
+                let y = gy + b[1];
+                if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE || grid[y][x]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function placePiece(p, gx, gy) {
+            for (let b of p.shape.shape) {
+                let x = gx + b[0];
+                let y = gy + b[1];
+                grid[y][x] = p.color;
+            }
+        }
+
+        function clearLines() {
+            let cleared = 0;
+            // Clear rows
+            for (let y = 0; y < GRID_SIZE; y++) {
+                if (grid[y].every(c => c > 0)) {
+                    grid[y].fill(0);
+                    cleared++;
+                }
+            }
+            // Clear columns
+            for (let x = 0; x < GRID_SIZE; x++) {
+                let full = true;
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    if (grid[y][x] === 0) full = false;
+                }
+                if (full) {
+                    for (let y = 0; y < GRID_SIZE; y++) {
+                        grid[y][x] = 0;
+                    }
+                    cleared++;
+                }
+            }
+            score += cleared * 10; // Basic scoring, can be enhanced for combos
+            if (score > highScore) highScore = score;
+            return cleared;
+        }
+
+        function checkGameOver() {
+            for (let p of pieces) {
+                for (let y = 0; y < GRID_SIZE - p.shape.h + 1; y++) {
+                    for (let x = 0; x < GRID_SIZE - p.shape.w + 1; x++) {
+                        if (isValidPlacement(p, x, y)) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            for (let i = 0; i < pieces.length; i++) {
+                let p = pieces[i];
+                let pos = p.pos;
+                if (mx >= pos.x && mx <= pos.x + p.shape.w * CELL_SIZE * pos.scale &&
+                    my >= pos.y && my <= pos.y + p.shape.h * CELL_SIZE * pos.scale) {
+                    dragging = i;
+                    offsetX = mx - pos.x;
+                    offsetY = my - pos.y;
+                    p.pos.scale = 1; // Set scale to 1 while dragging for full size
+                    break;
+                }
+            }
+            draw();
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (dragging === null) return;
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            pieces[dragging].pos.x = mx - offsetX;
+            pieces[dragging].pos.y = my - offsetY;
+            draw();
+            // Preview placement
+            const gx = Math.floor((mx - offsetX - GRID_X) / CELL_SIZE);
+            const gy = Math.floor((my - offsetY - GRID_Y) / CELL_SIZE);
+            const p = pieces[dragging];
+            if (isValidPlacement(p, gx, gy)) {
+                ctx.globalAlpha = 0.5;
+                for (let b of p.shape.shape) {
+                    ctx.drawImage(blockImages[p.color], GRID_X + (gx + b[0]) * CELL_SIZE, GRID_Y + (gy + b[1]) * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                }
+                ctx.globalAlpha = 1;
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (dragging === null) return;
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            let gx = Math.floor((mx - offsetX - GRID_X) / CELL_SIZE);
+            let gy = Math.floor((my - offsetY - GRID_Y) / CELL_SIZE);
+            const p = pieces[dragging];
+            if (isValidPlacement(p, gx, gy)) {
+                placePiece(p, gx, gy);
+                clearLines();
+                pieces.splice(dragging, 1);
+                if (pieces.length === 0) {
+                    generatePieces();
+                }
+                if (checkGameOver()) {
+                    alert('Game Over! Score: ' + score);
+                    grid = Array.from({length: GRID_SIZE}, () => Array(GRID_SIZE).fill(0));
+                    score = 0;
+                    generatePieces();
+                }
+            } else {
+                // Reset to original position and scale
+                p.pos = {...p.origPos};
+            }
+            dragging = null;
+            draw();
+        });
+
+        function init() {
+            generatePieces();
+            function loop() {
+                draw();
+                requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        // Wait for images to load
+        let loaded = 0;
+        blockImages.forEach(img => {
+            if (img) {
+                img.onload = () => {
+                    loaded++;
+                    if (loaded === 5) init();
+                };
+            }
+        });
+    </script>
+</body>
+</html>
