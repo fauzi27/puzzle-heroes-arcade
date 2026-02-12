@@ -6,15 +6,19 @@
     <title>Block Blast Game</title>
     <style>
         body {
-            background-color: #000;
+            background-color: #0f172a; /* Dark blue */
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            font-family: sans-serif;
         }
         canvas {
-            border: 1px solid #fff;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: transparent;
         }
     </style>
 </head>
@@ -61,11 +65,13 @@
             {shape: [[0,0],[1,0],[0,1]], w:2, h:2}, // L3
             {shape: [[0,0],[1,0],[1,1]], w:2, h:2}, // L3 rotated
             {shape: [[0,0],[0,1],[1,1]], w:2, h:2}, // L3 rotated
-            {shape: [[0,0],[0,1],[-1,1]], w:2, h:2}, // L3 flipped
+            {shape: [[1,0],[0,1],[1,1]], w:2, h:2}, // L3 flipped
             {shape: [[0,0],[1,0],[0,1],[1,1]], w:2, h:2}, // 2x2 square
             {shape: [[0,0],[1,0],[2,0],[3,0]], w:4, h:1}, // 4 horizontal
             {shape: [[0,0],[0,1],[0,2],[0,3]], w:1, h:4}, // 4 vertical
-            // Add more shapes as needed
+            {shape: [[0,0],[1,0],[2,0],[0,1],[1,1]], w:3, h:2}, // plus some more
+            {shape: [[0,0],[0,1],[0,2],[1,1]], w:2, h:3}, // T
+            // Add even more if needed
         ];
 
         function generatePieces() {
@@ -73,14 +79,15 @@
             for (let i = 0; i < 3; i++) {
                 let shapeIdx = Math.floor(Math.random() * shapes.length);
                 let color = Math.floor(Math.random() * 5) + 1;
-                let piece = {shape: shapes[shapeIdx], color: color};
-                pieces.push(piece);
+                let s = shapes[shapeIdx];
+                pieces.push({shape: s, color: color, w: s.w, h: s.h});
             }
         }
 
         function drawGrid() {
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1;
+            // Faint grid lines
+            ctx.strokeStyle = '#4b5563';
+            ctx.lineWidth = 0.5;
             for (let i = 0; i <= GRID_SIZE; i++) {
                 ctx.beginPath();
                 ctx.moveTo(GRID_X, GRID_Y + i * CELL_SIZE);
@@ -91,6 +98,7 @@
                 ctx.lineTo(GRID_X + i * CELL_SIZE, GRID_Y + GRID_SIZE * CELL_SIZE);
                 ctx.stroke();
             }
+            // Draw placed blocks
             for (let y = 0; y < GRID_SIZE; y++) {
                 for (let x = 0; x < GRID_SIZE; x++) {
                     if (grid[y][x]) {
@@ -101,174 +109,186 @@
         }
 
         function drawPieces() {
-            for (let i = 0; i < pieces.length; i++) {
-                let p = pieces[i];
-                let area = PIECE_AREAS[i];
-                let scale = Math.min(area.w / (p.shape.w * CELL_SIZE), area.h / (p.shape.h * CELL_SIZE));
-                let pw = p.shape.w * CELL_SIZE * scale;
-                let ph = p.shape.h * CELL_SIZE * scale;
-                let px = area.x + (area.w - pw) / 2;
-                let py = area.y + (area.h - ph) / 2;
+            pieces.forEach((p, i) => {
+                if (i === dragging) return;
+                const area = PIECE_AREAS[i];
+                const scale = Math.min(area.w / (p.w * CELL_SIZE), area.h / (p.h * CELL_SIZE)) * 0.8; // Slightly smaller for beauty
+                const pw = p.w * CELL_SIZE * scale;
+                const ph = p.h * CELL_SIZE * scale;
+                const px = area.x + (area.w - pw) / 2;
+                const py = area.y + (area.h - ph) / 2;
                 p.pos = {x: px, y: py, scale: scale};
                 p.origPos = {x: px, y: py, scale: scale};
-                for (let b of p.shape.shape) {
+                p.shape.shape.forEach(b => {
                     ctx.drawImage(blockImages[p.color], px + b[0] * CELL_SIZE * scale, py + b[1] * CELL_SIZE * scale, CELL_SIZE * scale, CELL_SIZE * scale);
-                }
-            }
+                });
+            });
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawGrid();
-            if (dragging !== null) {
-                let p = pieces[dragging];
-                for (let b of p.shape.shape) {
-                    ctx.drawImage(blockImages[p.color], p.pos.x + b[0] * CELL_SIZE * p.pos.scale, p.pos.y + b[1] * CELL_SIZE * p.pos.scale, CELL_SIZE * p.pos.scale, CELL_SIZE * p.pos.scale);
-                }
-            }
             drawPieces();
-            ctx.fillStyle = '#fff';
-            ctx.font = '30px Arial';
-            ctx.fillText('Score: ' + score, 10, 50);
-            ctx.fillText('High: ' + highScore, 400, 50);
+            if (dragging !== null) {
+                const p = pieces[dragging];
+                p.shape.shape.forEach(b => {
+                    ctx.drawImage(blockImages[p.color], p.pos.x + b[0] * CELL_SIZE * p.pos.scale, p.pos.y + b[1] * CELL_SIZE * p.pos.scale, CELL_SIZE * p.pos.scale, CELL_SIZE * p.pos.scale);
+                });
+            }
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 40px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(score, GRID_X, 60);
+            ctx.textAlign = 'right';
+            ctx.fillText('High: ' + highScore, GRID_X + GRID_SIZE * CELL_SIZE, 60);
         }
 
         function isValidPlacement(p, gx, gy) {
-            for (let b of p.shape.shape) {
-                let x = gx + b[0];
-                let y = gy + b[1];
-                if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE || grid[y][x]) {
-                    return false;
-                }
-            }
-            return true;
+            return p.shape.shape.every(b => {
+                const x = gx + b[0];
+                const y = gy + b[1];
+                return x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE && grid[y][x] === 0;
+            });
         }
 
         function placePiece(p, gx, gy) {
-            for (let b of p.shape.shape) {
-                let x = gx + b[0];
-                let y = gy + b[1];
+            p.shape.shape.forEach(b => {
+                const x = gx + b[0];
+                const y = gy + b[1];
                 grid[y][x] = p.color;
-            }
+            });
         }
 
         function clearLines() {
             let cleared = 0;
-            // Clear rows
-            for (let y = 0; y < GRID_SIZE; y++) {
+            // Clear full rows
+            for (let y = GRID_SIZE - 1; y >= 0; y--) {
                 if (grid[y].every(c => c > 0)) {
-                    grid[y].fill(0);
+                    grid.splice(y, 1);
+                    grid.unshift(Array(GRID_SIZE).fill(0));
                     cleared++;
+                    y++; // Re-check the same row after shift
                 }
             }
-            // Clear columns
-            for (let x = 0; x < GRID_SIZE; x++) {
+            // Clear full columns
+            for (let x = GRID_SIZE - 1; x >= 0; x--) {
                 let full = true;
                 for (let y = 0; y < GRID_SIZE; y++) {
-                    if (grid[y][x] === 0) full = false;
+                    if (grid[y][x] === 0) {
+                        full = false;
+                        break;
+                    }
                 }
                 if (full) {
                     for (let y = 0; y < GRID_SIZE; y++) {
-                        grid[y][x] = 0;
+                        grid[y].splice(x, 1);
+                        grid[y].push(0);
                     }
                     cleared++;
+                    x++; // Re-check after shift
                 }
             }
-            score += cleared * 10; // Basic scoring, can be enhanced for combos
-            if (score > highScore) highScore = score;
-            return cleared;
+            if (cleared > 0) {
+                score += cleared * cleared * 10; // Bonus for multiple clears
+                if (score > highScore) highScore = score;
+            }
         }
 
         function checkGameOver() {
-            for (let p of pieces) {
-                for (let y = 0; y < GRID_SIZE - p.shape.h + 1; y++) {
-                    for (let x = 0; x < GRID_SIZE - p.shape.w + 1; x++) {
+            return pieces.every(p => {
+                for (let y = 0; y <= GRID_SIZE - p.h; y++) {
+                    for (let x = 0; x <= GRID_SIZE - p.w; x++) {
                         if (isValidPlacement(p, x, y)) return false;
                     }
                 }
-            }
-            return true;
+                return true;
+            });
         }
 
-        canvas.addEventListener('mousedown', (e) => {
+        function handleStart(e) {
+            e.preventDefault();
             const rect = canvas.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
+            const mx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            const my = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
             for (let i = 0; i < pieces.length; i++) {
-                let p = pieces[i];
-                let pos = p.pos;
-                if (mx >= pos.x && mx <= pos.x + p.shape.w * CELL_SIZE * pos.scale &&
-                    my >= pos.y && my <= pos.y + p.shape.h * CELL_SIZE * pos.scale) {
+                const p = pieces[i];
+                const pos = p.pos;
+                const pw = p.w * CELL_SIZE * pos.scale;
+                const ph = p.h * CELL_SIZE * pos.scale;
+                if (mx >= pos.x && mx <= pos.x + pw && my >= pos.y && my <= pos.y + ph) {
                     dragging = i;
                     offsetX = mx - pos.x;
                     offsetY = my - pos.y;
-                    p.pos.scale = 1; // Set scale to 1 while dragging for full size
+                    p.pos.scale = 1;
                     break;
                 }
             }
             draw();
-        });
+        }
 
-        canvas.addEventListener('mousemove', (e) => {
+        function handleMove(e) {
             if (dragging === null) return;
+            e.preventDefault();
             const rect = canvas.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
-            pieces[dragging].pos.x = mx - offsetX;
-            pieces[dragging].pos.y = my - offsetY;
-            draw();
-            // Preview placement
-            const gx = Math.floor((mx - offsetX - GRID_X) / CELL_SIZE);
-            const gy = Math.floor((my - offsetY - GRID_Y) / CELL_SIZE);
+            const mx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            const my = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
             const p = pieces[dragging];
+            p.pos.x = mx - offsetX;
+            p.pos.y = my - offsetY;
+            const gx = Math.round((p.pos.x - GRID_X) / CELL_SIZE);
+            const gy = Math.round((p.pos.y - GRID_Y) / CELL_SIZE);
+            draw();
             if (isValidPlacement(p, gx, gy)) {
                 ctx.globalAlpha = 0.5;
-                for (let b of p.shape.shape) {
+                p.shape.shape.forEach(b => {
                     ctx.drawImage(blockImages[p.color], GRID_X + (gx + b[0]) * CELL_SIZE, GRID_Y + (gy + b[1]) * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                }
+                });
                 ctx.globalAlpha = 1;
             }
-        });
+        }
 
-        canvas.addEventListener('mouseup', (e) => {
+        function handleEnd(e) {
             if (dragging === null) return;
+            e.preventDefault();
             const rect = canvas.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
-            let gx = Math.floor((mx - offsetX - GRID_X) / CELL_SIZE);
-            let gy = Math.floor((my - offsetY - GRID_Y) / CELL_SIZE);
+            let mx = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) - rect.left;
+            let my = (e.changedTouches ? e.changedTouches[0].clientY : e.clientY) - rect.top;
             const p = pieces[dragging];
+            const gx = Math.round((p.pos.x - GRID_X) / CELL_SIZE);
+            const gy = Math.round((p.pos.y - GRID_Y) / CELL_SIZE);
             if (isValidPlacement(p, gx, gy)) {
                 placePiece(p, gx, gy);
                 clearLines();
                 pieces.splice(dragging, 1);
-                if (pieces.length === 0) {
-                    generatePieces();
-                }
+                if (pieces.length === 0) generatePieces();
                 if (checkGameOver()) {
-                    alert('Game Over! Score: ' + score);
+                    alert(`Game Over! Score: ${score}`);
                     grid = Array.from({length: GRID_SIZE}, () => Array(GRID_SIZE).fill(0));
                     score = 0;
                     generatePieces();
                 }
             } else {
-                // Reset to original position and scale
-                p.pos = {...p.origPos};
+                p.pos = { ...p.origPos };
             }
             dragging = null;
             draw();
-        });
+        }
+
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('touchstart', handleStart);
+        canvas.addEventListener('touchmove', handleMove);
+        canvas.addEventListener('touchend', handleEnd);
 
         function init() {
             generatePieces();
-            function loop() {
+            requestAnimationFrame(function loop() {
                 draw();
                 requestAnimationFrame(loop);
-            }
-            loop();
+            });
         }
 
-        // Wait for images to load
         let loaded = 0;
         blockImages.forEach(img => {
             if (img) {
@@ -276,6 +296,7 @@
                     loaded++;
                     if (loaded === 5) init();
                 };
+                img.onerror = () => console.error('Image load error');
             }
         });
     </script>
