@@ -1,200 +1,168 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast Puzzle</title>
+    <title>Block Blast: Heroes Arcade</title>
     <style>
         :root {
-            --bg-color: #1a237e; /* Dark Blue like reference */
-            --grid-bg: #0d1245;
-            --cell-size: 40px; /* Base size, will be responsive */
-            --gap: 3px;
+            --bg-color: #171c3a; 
+            --grid-bg: #0f132a;
+            --cell-empty: #1c2340;
+            --gap: 4px;
         }
 
-        * {
-            box-sizing: border-box;
-            touch-action: none; /* Prevent scrolling while playing */
-            user-select: none;
-        }
+        * { box-sizing: border-box; touch-action: none; user-select: none; font-family: 'Segoe UI', sans-serif; }
 
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: var(--bg-color);
             color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
+            height: 100dvh; overflow: hidden;
         }
 
-        /* --- HEADER & SCORE --- */
-        .header {
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        /* --- UI ATAS --- */
+        .top-bar {
+            width: 100%; max-width: 450px; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        
+        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+        .user-img { width: 35px; height: 35px; border-radius: 50%; background: #ddd; object-fit: cover; }
+        .btn-small {
+            background: #2563eb; color: white; border: none; padding: 5px 12px;
+            border-radius: 15px; font-size: 0.8rem; cursor: pointer;
         }
 
-        .score-container {
-            font-size: 3rem;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(255,255,255,0.5);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .score-board { text-align: center; margin-bottom: 10px; }
+        .score-val { font-size: 3rem; font-weight: 800; text-shadow: 0 0 15px rgba(255, 255, 255, 0.3); }
+        .best-val { color: #fbbf24; font-size: 1rem; font-weight: bold; }
 
-        .score-label {
-            font-size: 1rem;
-            color: #ffd700; /* Gold */
-        }
-
-        /* --- GRID AREA --- */
+        /* --- PAPAN GAME (BOARD) --- */
         .game-board {
             background-color: var(--grid-bg);
             padding: 10px;
-            border-radius: 10px;
+            border-radius: 12px;
             display: grid;
             grid-template-columns: repeat(8, 1fr);
             grid-template-rows: repeat(8, 1fr);
             gap: var(--gap);
-            width: 90vw;
-            max-width: 400px;
+            width: 92vw; max-width: 400px;
             aspect-ratio: 1/1;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
         }
 
         .cell {
-            background-color: #283593; /* Empty cell color */
-            border-radius: 4px;
-            width: 100%;
-            height: 100%;
+            background-color: var(--cell-empty);
+            border-radius: 6px;
+            width: 100%; height: 100%;
+            /* Fix Bayangan: Inset shadow untuk efek kedalaman */
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.05);
             position: relative;
         }
 
-        /* Filled cell styling */
+        /* Block yang sudah terisi di board */
         .cell.filled {
             background-size: cover;
             background-position: center;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
+            /* Efek timbul (Outset) untuk block terisi */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.2);
+            z-index: 1;
         }
-        
-        /* Highlight drop zone */
+
+        /* Indikator posisi drop */
         .cell.highlight {
-            background-color: rgba(255, 255, 255, 0.3);
+            background-color: rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.2);
         }
 
-        /* Animation for clearing */
-        .cleared {
-            animation: popOut 0.3s forwards;
-        }
+        .cleared { animation: popOut 0.3s forwards; }
+        @keyframes popOut { to { transform: scale(0); opacity: 0; } }
 
-        @keyframes popOut {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(0); opacity: 0; }
-        }
-
-        /* --- DOCK / SPAWN AREA --- */
+        /* --- DOCK & PIECES --- */
         .dock {
-            margin-top: 20px;
-            width: 100%;
-            max-width: 400px;
-            height: 150px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
+            width: 100%; max-width: 400px; height: 140px;
+            display: flex; justify-content: space-around; align-items: center;
         }
+        .dock-slot { width: 30%; height: 100%; display: flex; justify-content: center; align-items: center; }
 
-        .dock-slot {
-            width: 30%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* --- DRAGGABLE PIECES --- */
         .piece {
-            display: grid;
-            gap: 2px;
-            /* Default scale down in dock */
-            transform: scale(0.6); 
-            transition: transform 0.1s;
+            display: grid; gap: 2px;
+            transform: scale(0.65); /* Ukuran di dock */
             cursor: grab;
+            transition: transform 0.1s;
         }
 
         .piece-block {
-            width: 30px; /* Visual size in dock */
-            height: 30px;
-            border-radius: 3px;
+            width: 38px; height: 38px; /* Ukuran dasar blok */
+            border-radius: 4px;
             background-size: cover;
+            box-shadow: 0 2px 2px rgba(0,0,0,0.3);
         }
 
-        /* Style when dragging */
+        /* Saat di-drag */
         .piece.dragging {
             position: fixed;
-            z-index: 1000;
-            pointer-events: none; /* Let events pass through to grid */
-            transform: scale(1.1); /* Scale up slightly when dragging */
-            opacity: 0.9;
+            z-index: 9999;
+            pointer-events: none; /* Tembus sentuhan agar bisa deteksi elemen bawahnya */
+            transform: scale(1) !important; /* Ukuran asli saat di drag */
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+            opacity: 0.95;
         }
 
-        /* Responsive */
-        @media (min-width: 450px) {
-            :root {
-                --cell-size: 45px;
-            }
-            .piece-block {
-                width: 40px;
-                height: 40px;
-            }
+        /* --- LEADERBOARD & MODALS --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center;
+            z-index: 10000;
         }
+        .modal-content {
+            background: #1e293b; padding: 25px; border-radius: 15px;
+            width: 90%; max-width: 350px; text-align: center;
+            border: 1px solid #334155;
+        }
+        .rank-list {
+            text-align: left; max-height: 250px; overflow-y: auto;
+            margin: 15px 0; background: #0f172a; padding: 10px; border-radius: 8px;
+        }
+        .rank-item {
+            display: flex; justify-content: space-between; padding: 8px 0;
+            border-bottom: 1px solid #334155; font-size: 0.9rem;
+        }
+        .rank-item:last-child { border: none; }
+        .rank-name { color: #94a3b8; }
+        .rank-score { color: #fbbf24; font-weight: bold; }
         
-        /* Modal Game Over */
-        #game-over {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
+        .btn-primary {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white; border: none; padding: 12px 30px;
+            border-radius: 50px; font-size: 1.1rem; font-weight: bold;
+            cursor: pointer; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
         }
-        #game-over h1 { color: white; margin-bottom: 20px; }
-        .btn-restart {
-            padding: 15px 30px;
-            background: #ff0055;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            box-shadow: 0 0 15px #ff0055;
-        }
-
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="score-label">BEST: <span id="best-score">0</span></div>
-        <div class="score-container">
-            <span>❤️</span>
-            <span id="score">0</span>
+    <div class="top-bar">
+        <div class="user-profile" id="auth-section">
+            <button class="btn-small" onclick="signIn()">Login G+</button>
         </div>
+        <div class="user-profile" id="user-info" style="display:none;">
+            <img src="" id="user-pic" class="user-img">
+            <span id="user-name">Player</span>
+        </div>
+        <button class="btn-small" style="background:#4f46e5" onclick="showLeaderboard()">🏆 Rank</button>
     </div>
 
-    <div class="game-board" id="grid">
-        </div>
+    <div class="score-board">
+        <div class="best-val">BEST: <span id="best-score">0</span></div>
+        <div class="score-val" id="score">0</div>
+    </div>
+
+    <div class="game-board" id="grid"></div>
 
     <div class="dock" id="dock">
         <div class="dock-slot" id="slot-0"></div>
@@ -202,14 +170,127 @@
         <div class="dock-slot" id="slot-2"></div>
     </div>
 
-    <div id="game-over">
-        <h1>GAME OVER</h1>
-        <div style="font-size: 2rem; margin-bottom: 20px; color: #ffd700;" id="final-score">0</div>
-        <button class="btn-restart" onclick="resetGame()">Try Again</button>
+    <div class="modal-overlay" id="modal-gameover">
+        <div class="modal-content">
+            <h2 style="color:#ef4444; margin:0;">GAME OVER</h2>
+            <p style="color:#94a3b8;">Score Kamu</p>
+            <div style="font-size: 2.5rem; font-weight:bold; color:white; margin-bottom:20px;" id="final-score">0</div>
+            <button class="btn-primary" onclick="resetGame()">Main Lagi</button>
+        </div>
     </div>
 
-    <script>
-        // --- CONFIGURATION ---
+    <div class="modal-overlay" id="modal-leaderboard">
+        <div class="modal-content">
+            <h3>🏆 Top Players</h3>
+            <div class="rank-list" id="rank-list">
+                <div style="text-align:center; color:#64748b;">Loading...</div>
+            </div>
+            <button class="btn-small" onclick="document.getElementById('modal-leaderboard').style.display='none'">Tutup</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // --- 1. KONFIGURASI FIREBASE ANDA DISINI ---
+        const firebaseConfig = {
+  apiKey: "AIzaSyAF1M_h7A2_2Xacxb2qJw7jX5brhat4CGA",
+  authDomain: "free-b852f.firebaseapp.com",
+  databaseURL: "https://free-b852f-default-rtdb.firebaseio.com",
+  projectId: "free-b852f",
+  storageBucket: "free-b852f.firebasestorage.app",
+  messagingSenderId: "636007240374",
+  appId: "1:636007240374:web:075539b483bf199e1ccc17",
+  measurementId: "G-6EC7QW1145"
+};
+
+        // Initialize Firebase
+        let app, auth, db, user;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch(e) {
+            console.error("Firebase belum disetting!", e);
+        }
+
+        // --- AUTH LOGIC ---
+        window.signIn = () => {
+            if(!auth) return alert("Firebase Config belum diisi!");
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider).catch(err => alert(err.message));
+        }
+
+        if(auth) {
+            onAuthStateChanged(auth, (u) => {
+                if (u) {
+                    user = u;
+                    document.getElementById('auth-section').style.display = 'none';
+                    document.getElementById('user-info').style.display = 'flex';
+                    document.getElementById('user-name').innerText = u.displayName.split(' ')[0];
+                    document.getElementById('user-pic').src = u.photoURL;
+                    saveUserData(u); // Simpan data user basic
+                }
+            });
+        }
+
+        async function saveUserData(u) {
+            // Update data user di database untuk keperluan ranking
+            try {
+                await setDoc(doc(db, "users", u.uid), {
+                    name: u.displayName,
+                    photo: u.photoURL,
+                    lastLogin: Date.now()
+                }, { merge: true });
+            } catch(e) { console.log("Error save user", e); }
+        }
+
+        async function saveScore(finalScore) {
+            if(!user || !db) return;
+            try {
+                // Simpan score ke koleksi 'leaderboard'
+                await addDoc(collection(db, "leaderboard"), {
+                    uid: user.uid,
+                    name: user.displayName,
+                    score: finalScore,
+                    date: Date.now()
+                });
+            } catch(e) { console.error("Gagal simpan score", e); }
+        }
+
+        window.showLeaderboard = async () => {
+            if(!db) return alert("Firebase belum aktif");
+            document.getElementById('modal-leaderboard').style.display = 'flex';
+            const listEl = document.getElementById('rank-list');
+            listEl.innerHTML = '<div style="text-align:center;">Loading...</div>';
+
+            try {
+                const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(10));
+                const querySnapshot = await getDocs(q);
+                let html = '';
+                let rank = 1;
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    let color = rank === 1 ? '#fbbf24' : (rank === 2 ? '#94a3b8' : (rank === 3 ? '#b45309' : '#64748b'));
+                    html += `
+                        <div class="rank-item">
+                            <span style="color:${color}; width:20px; font-weight:bold;">#${rank}</span>
+                            <span class="rank-name">${data.name.substring(0, 15)}</span>
+                            <span class="rank-score">${data.score}</span>
+                        </div>
+                    `;
+                    rank++;
+                });
+                listEl.innerHTML = html || '<div style="text-align:center;">Belum ada data</div>';
+            } catch(e) {
+                listEl.innerHTML = 'Error loading data.';
+                console.error(e);
+            }
+        }
+
+        // --- GAME LOGIC START ---
         const GRID_SIZE = 8;
         const ASSETS = [
             'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block1_rgsmm5.png',
@@ -219,34 +300,26 @@
             'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block5_d0pye8.png'
         ];
 
-        // Shapes Definition (Matrix: 1 = block, 0 = empty)
+        // Definisikan warna fallback agar background tidak transparan
+        const COLORS = {
+            'block1': '#e91e63', 'block2': '#2196f3', 'block3': '#4caf50', 
+            'block4': '#ff9800', 'block5': '#9c27b0'
+        };
+
         const SHAPES = [
-            { m: [[1]], id: 'single' },
-            { m: [[1,1]], id: 'h2' },
-            { m: [[1],[1]], id: 'v2' },
-            { m: [[1,1,1]], id: 'h3' },
-            { m: [[1],[1],[1]], id: 'v3' },
-            { m: [[1,1,1,1]], id: 'h4' },
-            { m: [[1],[1],[1],[1]], id: 'v4' },
-            { m: [[1,1],[1,1]], id: 'square' },
-            { m: [[1,0],[1,1]], id: 'L1' },
-            { m: [[0,1],[1,1]], id: 'L2' },
-            { m: [[1,1],[1,0]], id: 'L3' },
-            { m: [[1,1],[0,1]], id: 'L4' },
-            { m: [[1,1,1],[0,1,0]], id: 'T1' },
-            { m: [[0,1,0],[1,1,1]], id: 'T2' }
+            { m: [[1]], id: '1' }, { m: [[1,1]], id: '2h' }, { m: [[1],[1]], id: '2v' },
+            { m: [[1,1,1]], id: '3h' }, { m: [[1],[1],[1]], id: '3v' },
+            { m: [[1,1],[1,1]], id: 'sq' }, { m: [[1,0],[1,1]], id: 'L1' },
+            { m: [[1,1,1],[0,1,0]], id: 'T' }, { m: [[1,1,1,1]], id: '4h' }
         ];
 
-        // --- STATE ---
         let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
         let score = 0;
         let bestScore = localStorage.getItem('blockBlastBest') || 0;
         document.getElementById('best-score').innerText = bestScore;
 
-        // --- INIT ---
         const gridEl = document.getElementById('grid');
-        const dockEl = document.getElementById('dock');
-        
+
         function initGrid() {
             gridEl.innerHTML = '';
             for(let r=0; r<GRID_SIZE; r++) {
@@ -260,332 +333,260 @@
             }
         }
 
-        // --- GAME LOGIC ---
-
-        function spawnPieces() {
-            const slots = [0, 1, 2];
-            slots.forEach(i => {
+        window.spawnPieces = function() {
+            [0, 1, 2].forEach(i => {
                 const slot = document.getElementById(`slot-${i}`);
                 if (slot.childElementCount === 0) {
-                    const shapeData = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-                    const texture = ASSETS[Math.floor(Math.random() * ASSETS.length)]; // Random color
-                    createDraggablePiece(slot, shapeData.m, texture);
+                    const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+                    const imgUrl = ASSETS[Math.floor(Math.random() * ASSETS.length)];
+                    createPiece(slot, shape.m, imgUrl);
                 }
             });
             checkGameOver();
         }
 
-        function createDraggablePiece(container, matrix, textureUrl) {
+        function getColorFromUrl(url) {
+            for(let key in COLORS) { if(url.includes(key)) return COLORS[key]; }
+            return '#666';
+        }
+
+        function createPiece(container, matrix, texture) {
             const piece = document.createElement('div');
             piece.classList.add('piece');
             piece.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
             piece.dataset.matrix = JSON.stringify(matrix);
-            piece.dataset.texture = textureUrl;
+            piece.dataset.texture = texture;
+            piece.dataset.color = getColorFromUrl(texture); // Simpan warna
 
-            // Generate blocks inside piece
-            matrix.forEach((row, r) => {
-                row.forEach((val, c) => {
+            matrix.forEach(row => {
+                row.forEach(val => {
                     const block = document.createElement('div');
-                    if (val === 1) {
+                    if (val) {
                         block.classList.add('piece-block');
-                        block.style.backgroundImage = `url('${textureUrl}')`;
-                        // Background color fallback/tint
-                        block.style.backgroundColor = getDominantColor(textureUrl); 
+                        block.style.backgroundImage = `url('${texture}')`;
+                        block.style.backgroundColor = piece.dataset.color; // Pastikan warna dasar ada
                     } else {
-                        block.style.width = '30px'; 
-                        block.style.height = '30px';
-                        block.style.visibility = 'hidden';
+                        block.style.width = '38px'; block.style.height = '38px'; block.style.visibility = 'hidden';
                     }
                     piece.appendChild(block);
                 });
             });
 
-            // Event Listeners
-            piece.addEventListener('mousedown', handleDragStart);
-            piece.addEventListener('touchstart', handleDragStart, {passive: false});
-
+            // Touch & Mouse Events
+            piece.addEventListener('mousedown', startDrag);
+            piece.addEventListener('touchstart', startDrag, {passive: false});
             container.appendChild(piece);
         }
 
-        // --- DRAG AND DROP LOGIC ---
-        let draggedPiece = null;
-        let originalParent = null;
-        let dragOffset = {x:0, y:0};
-        let currentMatrix = null;
-        let currentTexture = null;
+        // --- DRAG LOGIC (REVISED FOR PRECISION) ---
+        let dragged = null;
+        let startParent = null;
+        let matrix = null;
+        let texture = null;
+        let baseColor = null;
 
-        function handleDragStart(e) {
+        function startDrag(e) {
             e.preventDefault();
-            const touch = e.touches ? e.touches[0] : e;
-            const target = e.currentTarget;
+            dragged = e.currentTarget;
+            startParent = dragged.parentElement;
+            matrix = JSON.parse(dragged.dataset.matrix);
+            texture = dragged.dataset.texture;
+            baseColor = dragged.dataset.color;
 
-            draggedPiece = target;
-            originalParent = target.parentElement;
-            currentMatrix = JSON.parse(target.dataset.matrix);
-            currentTexture = target.dataset.texture;
+            dragged.classList.add('dragging');
+            document.body.appendChild(dragged);
 
-            // Calculate offset to grab from center/touch point
-            const rect = target.getBoundingClientRect();
-            dragOffset.x = touch.clientX - rect.left - (rect.width / 2); // Center grab
-            dragOffset.y = touch.clientY - rect.top - (rect.height / 2);
+            updatePosition(e);
 
-            // Move to body for absolute positioning
-            draggedPiece.classList.add('dragging');
-            document.body.appendChild(draggedPiece);
-            
-            // Initial position update
-            movePiece(touch.clientX, touch.clientY);
-
-            // Add global move/up listeners
-            document.addEventListener('mousemove', handleDragMove);
-            document.addEventListener('touchmove', handleDragMove, {passive: false});
-            document.addEventListener('mouseup', handleDragEnd);
-            document.addEventListener('touchend', handleDragEnd);
+            document.addEventListener('mousemove', moveDrag);
+            document.addEventListener('touchmove', moveDrag, {passive: false});
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
         }
 
-        function handleDragMove(e) {
+        function moveDrag(e) {
             e.preventDefault();
-            const touch = e.touches ? e.touches[0] : e;
-            movePiece(touch.clientX, touch.clientY);
+            updatePosition(e);
             
-            // Highlight potential drop
-            const gridInfo = getGridUnderPiece(touch.clientX, touch.clientY);
-            clearHighlights();
-            if (gridInfo && canPlace(gridInfo.r, gridInfo.c, currentMatrix)) {
-                highlightGrid(gridInfo.r, gridInfo.c, currentMatrix);
+            // Highlight Logic
+            const {r, c} = getGridPos(e);
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+            
+            if (r !== null && canPlace(r, c, matrix)) {
+                showHighlight(r, c, matrix);
             }
         }
 
-        function movePiece(x, y) {
-            if(!draggedPiece) return;
-            // Visual size needs to match grid cell size roughly when dragging
-            // Scale is handled in CSS, but position needs to center on finger
-            draggedPiece.style.left = (x - (draggedPiece.offsetWidth / 2)) + 'px';
-            draggedPiece.style.top = (y - (draggedPiece.offsetHeight / 2) - 50) + 'px'; // -50 to see under finger
+        function updatePosition(e) {
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // FIX PRESISI:
+            // 1. Ambil lebar piece
+            const rect = dragged.getBoundingClientRect();
+            // 2. Set posisi horizontal tepat di tengah jari
+            dragged.style.left = (clientX - (rect.width / 2)) + 'px';
+            // 3. Set posisi vertikal DI ATAS jari (offset -80px) agar tidak tertutup tangan
+            dragged.style.top = (clientY - rect.height - 50) + 'px'; 
         }
 
-        function handleDragEnd(e) {
-            const touch = e.changedTouches ? e.changedTouches[0] : e;
-            const gridInfo = getGridUnderPiece(touch.clientX, touch.clientY);
+        function getGridPos(e) {
+            const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+            const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
             
-            clearHighlights();
+            // Kita cek elemen yang ada DI BAWAH offset visual piece
+            // Karena piece kita angkat 50px-80px ke atas, kita harus "nembak" ke lokasi itu
+            const targetEl = document.elementFromPoint(clientX, clientY - 80);
+            
+            if (targetEl && targetEl.classList.contains('cell')) {
+                return { r: parseInt(targetEl.dataset.r), c: parseInt(targetEl.dataset.c) };
+            }
+            return { r: null, c: null };
+        }
 
-            let placed = false;
-            if (gridInfo && canPlace(gridInfo.r, gridInfo.c, currentMatrix)) {
-                placePiece(gridInfo.r, gridInfo.c, currentMatrix, currentTexture);
-                draggedPiece.remove(); // Remove draggable
-                score += currentMatrix.flat().filter(x=>x).length * 10;
-                updateScore();
+        function endDrag(e) {
+            const {r, c} = getGridPos(e);
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+
+            if (r !== null && canPlace(r, c, matrix)) {
+                placePiece(r, c, matrix, texture, baseColor);
+                dragged.remove();
+                
+                // Score
+                score += matrix.flat().filter(x=>x).length * 10;
                 checkLines();
-                spawnPieces(); // Check if dock empty
-                placed = true;
+                document.getElementById('score').innerText = score;
+                spawnPieces();
             } else {
                 // Return to dock
-                draggedPiece.classList.remove('dragging');
-                draggedPiece.style.left = '';
-                draggedPiece.style.top = '';
-                originalParent.appendChild(draggedPiece);
+                dragged.classList.remove('dragging');
+                dragged.style.position = '';
+                dragged.style.left = ''; dragged.style.top = '';
+                dragged.style.transform = ''; // Reset scale
+                startParent.appendChild(dragged);
             }
 
-            // Cleanup
-            draggedPiece = null;
-            document.removeEventListener('mousemove', handleDragMove);
-            document.removeEventListener('touchmove', handleDragMove);
-            document.removeEventListener('mouseup', handleDragEnd);
-            document.removeEventListener('touchend', handleDragEnd);
+            dragged = null;
+            document.removeEventListener('mousemove', moveDrag);
+            document.removeEventListener('touchmove', moveDrag);
+            document.removeEventListener('mouseup', endDrag);
+            document.removeEventListener('touchend', endDrag);
         }
 
-        // --- GRID HELPERS ---
-
-        function getGridUnderPiece(x, y) {
-            // We want the grid cell closest to the top-left of the piece's first block
-            // However, the finger is usually in the center of the piece. 
-            // Let's sample the grid element directly under the finger (with offset adjustment)
-            
-            // Simply hide piece momentarily to get element below
-            if(draggedPiece) draggedPiece.style.visibility = 'hidden';
-            const elemBelow = document.elementFromPoint(x, y - 50);
-            if(draggedPiece) draggedPiece.style.visibility = 'visible';
-
-            if (!elemBelow) return null;
-            
-            // If we hit a cell
-            if (elemBelow.classList.contains('cell')) {
-                return { 
-                    r: parseInt(elemBelow.dataset.r), 
-                    c: parseInt(elemBelow.dataset.c) 
-                };
-            }
-            return null;
-        }
-
-        function canPlace(startR, startC, matrix) {
-            for(let r=0; r<matrix.length; r++) {
-                for(let c=0; c<matrix[0].length; c++) {
-                    if (matrix[r][c] === 1) {
-                        const targetR = startR + r;
-                        const targetC = startC + c;
-                        // Check bounds
-                        if (targetR >= GRID_SIZE || targetC >= GRID_SIZE) return false;
-                        // Check occupancy
-                        if (grid[targetR][targetC] !== null) return false;
+        // --- GRID LOGIC ---
+        function canPlace(sr, sc, m) {
+            for(let r=0; r<m.length; r++) {
+                for(let c=0; c<m[0].length; c++) {
+                    if(m[r][c]) {
+                        if(sr+r >= GRID_SIZE || sc+c >= GRID_SIZE) return false;
+                        if(grid[sr+r][sc+c] !== null) return false;
                     }
                 }
             }
             return true;
         }
 
-        function highlightGrid(startR, startC, matrix) {
-            for(let r=0; r<matrix.length; r++) {
-                for(let c=0; c<matrix[0].length; c++) {
-                    if (matrix[r][c] === 1) {
-                        const cell = document.querySelector(`.cell[data-r="${startR+r}"][data-c="${startC+c}"]`);
+        function showHighlight(sr, sc, m) {
+            for(let r=0; r<m.length; r++) {
+                for(let c=0; c<m[0].length; c++) {
+                    if(m[r][c]) {
+                        const cell = document.querySelector(`.cell[data-r="${sr+r}"][data-c="${sc+c}"]`);
                         if(cell) cell.classList.add('highlight');
                     }
                 }
             }
         }
 
-        function clearHighlights() {
-            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
-        }
-
-        function placePiece(startR, startC, matrix, texture) {
-            for(let r=0; r<matrix.length; r++) {
-                for(let c=0; c<matrix[0].length; c++) {
-                    if (matrix[r][c] === 1) {
-                        const targetR = startR + r;
-                        const targetC = startC + c;
-                        grid[targetR][targetC] = texture;
-                        
-                        const cell = document.querySelector(`.cell[data-r="${targetR}"][data-c="${targetC}"]`);
+        function placePiece(sr, sc, m, tex, col) {
+            for(let r=0; r<m.length; r++) {
+                for(let c=0; c<m[0].length; c++) {
+                    if(m[r][c]) {
+                        grid[sr+r][sc+c] = 1;
+                        const cell = document.querySelector(`.cell[data-r="${sr+r}"][data-c="${sc+c}"]`);
                         cell.classList.add('filled');
-                        cell.style.backgroundImage = `url('${texture}')`;
+                        cell.style.backgroundImage = `url('${tex}')`;
+                        // FIX TRANSPARANSI: Set background color eksplisit
+                        cell.style.backgroundColor = col; 
                     }
                 }
             }
         }
 
-        // --- CLEAR LINES LOGIC ---
         function checkLines() {
-            let linesCleared = 0;
-            const rowsToClear = [];
-            const colsToClear = [];
-
-            // Check Rows
-            for(let r=0; r<GRID_SIZE; r++) {
-                if (grid[r].every(val => val !== null)) rowsToClear.push(r);
-            }
-
-            // Check Cols
-            for(let c=0; c<GRID_SIZE; c++) {
+            let rows = [], cols = [];
+            for(let r=0; r<GRID_SIZE; r++) { if(grid[r].every(v => v !== null)) rows.push(r); }
+            for(let c=0; c<GRID_SIZE; c++) { 
                 let full = true;
-                for(let r=0; r<GRID_SIZE; r++) {
-                    if(grid[r][c] === null) { full = false; break; }
-                }
-                if(full) colsToClear.push(c);
+                for(let r=0; r<GRID_SIZE; r++) if(grid[r][c] === null) full = false;
+                if(full) cols.push(c);
             }
 
-            // Visual Clear & Data Clear
-            const cellsToAnimate = new Set();
+            let cleared = new Set();
+            rows.forEach(r => { for(let c=0; c<GRID_SIZE; c++) cleared.add(`${r},${c}`); });
+            cols.forEach(c => { for(let r=0; r<GRID_SIZE; r++) cleared.add(`${r},${c}`); });
 
-            rowsToClear.forEach(r => {
-                for(let c=0; c<GRID_SIZE; c++) {
-                    cellsToAnimate.add(`${r},${c}`);
-                    grid[r][c] = null;
-                }
-            });
+            if (cleared.size > 0) {
+                // Combo Bonus
+                let multiplier = rows.length + cols.length;
+                score += (cleared.size * 10) * multiplier;
+                document.getElementById('score').innerText = score;
 
-            colsToClear.forEach(c => {
-                for(let r=0; r<GRID_SIZE; r++) {
-                    cellsToAnimate.add(`${r},${c}`);
-                    grid[r][c] = null;
-                }
-            });
-
-            if (cellsToAnimate.size > 0) {
-                cellsToAnimate.forEach(coord => {
+                cleared.forEach(coord => {
                     const [r, c] = coord.split(',');
+                    grid[r][c] = null;
                     const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
                     cell.classList.add('cleared');
-                    // Remove visuals after anim
                     setTimeout(() => {
                         cell.classList.remove('filled', 'cleared');
                         cell.style.backgroundImage = '';
+                        cell.style.backgroundColor = ''; // Reset color
                     }, 300);
                 });
-                
-                // Score Calculation (Combo bonus)
-                const totalLines = rowsToClear.length + colsToClear.length;
-                score += (totalLines * 100) * totalLines; // Exponential bonus
-                updateScore();
             }
         }
 
-        // --- GAME OVER CHECK ---
         function checkGameOver() {
-            // Get current pieces in dock
             const slots = document.querySelectorAll('.dock-slot .piece');
-            if (slots.length === 0) return; // No pieces left (spawning next)
+            if(slots.length === 0) return;
 
-            let canMove = false;
-
-            // Brute force check: Can ANY piece fit ANYWHERE?
-            for (let piece of slots) {
-                const matrix = JSON.parse(piece.dataset.matrix);
-                
+            let possible = false;
+            slots.forEach(p => {
+                const m = JSON.parse(p.dataset.matrix);
                 for(let r=0; r<GRID_SIZE; r++) {
                     for(let c=0; c<GRID_SIZE; c++) {
-                        if (canPlace(r, c, matrix)) {
-                            canMove = true;
-                            break;
-                        }
+                        if(canPlace(r, c, m)) possible = true;
                     }
-                    if(canMove) break;
                 }
-                if(canMove) break;
-            }
+            });
 
-            if (!canMove) {
+            if(!possible) {
                 setTimeout(() => {
-                    document.getElementById('game-over').style.display = 'flex';
+                    document.getElementById('modal-gameover').style.display = 'flex';
                     document.getElementById('final-score').innerText = score;
                     if(score > bestScore) {
                         localStorage.setItem('blockBlastBest', score);
+                        bestScore = score;
                     }
-                }, 500);
+                    if(user) saveScore(score); // Simpan ke leaderboard jika login
+                }, 1000);
             }
         }
 
-        function updateScore() {
-            document.getElementById('score').innerText = score;
-        }
-
-        function resetGame() {
-            grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+        window.resetGame = function() {
             score = 0;
-            updateScore();
+            document.getElementById('score').innerText = '0';
+            grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
             initGrid();
-            document.getElementById('slot-0').innerHTML = '';
-            document.getElementById('slot-1').innerHTML = '';
-            document.getElementById('slot-2').innerHTML = '';
-            document.getElementById('game-over').style.display = 'none';
-            bestScore = localStorage.getItem('blockBlastBest') || 0;
-            document.getElementById('best-score').innerText = bestScore;
+            document.getElementById('dock').innerHTML = `
+                <div class="dock-slot" id="slot-0"></div>
+                <div class="dock-slot" id="slot-1"></div>
+                <div class="dock-slot" id="slot-2"></div>
+            `;
+            document.getElementById('modal-gameover').style.display = 'none';
             spawnPieces();
         }
 
-        function getDominantColor(url) {
-            // Simple mapping based on URL content string to give a tint
-            if(url.includes('block1')) return '#e91e63';
-            if(url.includes('block2')) return '#2196f3';
-            if(url.includes('block3')) return '#4caf50';
-            if(url.includes('block4')) return '#ff9800';
-            if(url.includes('block5')) return '#9c27b0';
-            return '#607d8b';
-        }
-
-        // Start
+        // Init
         initGrid();
         spawnPieces();
 
