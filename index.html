@@ -31,130 +31,178 @@
         .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
         .user-img { width: 35px; height: 35px; border-radius: 50%; background: #ddd; object-fit: cover; }
         .btn-small {
-            background: #2563eb; color: white; border: none; padding: 5px 12px;
-            border-radius: 15px; font-size: 0.8rem; cursor: pointer;
+            background: #2563eb; color: white; border: none; padding: 8px 15px;
+            border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
         }
 
-        .score-board { text-align: center; margin-bottom: 10px; }
-        .score-val { font-size: 3rem; font-weight: 800; text-shadow: 0 0 15px rgba(255, 255, 255, 0.3); }
-        .best-val { color: #fbbf24; font-size: 1rem; font-weight: bold; }
+        .score-board { text-align: center; margin-bottom: 10px; margin-top: -10px; }
+        .score-val { font-size: 3.5rem; font-weight: 800; text-shadow: 0 0 20px rgba(255, 255, 255, 0.2); line-height: 1; }
+        .best-val { color: #fbbf24; font-size: 1rem; font-weight: bold; letter-spacing: 1px; }
 
         /* --- PAPAN GAME (BOARD) --- */
         .game-board {
             background-color: var(--grid-bg);
-            padding: 10px;
-            border-radius: 12px;
+            padding: 12px;
+            border-radius: 16px;
             display: grid;
             grid-template-columns: repeat(8, 1fr);
             grid-template-rows: repeat(8, 1fr);
             gap: var(--gap);
-            width: 92vw; max-width: 400px;
+            width: 90vw; max-width: 400px;
             aspect-ratio: 1/1;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
             margin-bottom: 20px;
+            border: 2px solid #2d3748;
+            transition: transform 0.1s ease; /* Untuk screen shake */
         }
 
         .cell {
             background-color: var(--cell-empty);
             border-radius: 6px;
             width: 100%; height: 100%;
-            /* Fix Bayangan: Inset shadow untuk efek kedalaman */
-            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(255,255,255,0.05);
+            /* Bayangan Dalam (Inset) untuk efek lubang */
+            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.08);
             position: relative;
+            transition: transform 0.2s ease, background-color 0.3s; /* Tambah transisi untuk animasi place */
         }
 
         /* Block yang sudah terisi di board */
         .cell.filled {
             background-size: cover;
             background-position: center;
-            /* Efek timbul (Outset) untuk block terisi */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.2);
+            /* Bayangan Luar (Outset) agar terlihat timbul */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
             z-index: 1;
+            border: 1px solid rgba(0,0,0,0.2);
         }
 
-        /* Indikator posisi drop */
+        /* Indikator posisi drop dengan glow */
         .cell.highlight {
-            background-color: rgba(255, 255, 255, 0.2);
-            box-shadow: inset 0 0 10px rgba(255,255,255,0.2);
+            background-color: rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 0 15px rgba(255,255,255,0.1), 0 0 10px rgba(255,255,255,0.3);
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
         }
 
         .cleared { animation: popOut 0.3s forwards; }
-        @keyframes popOut { to { transform: scale(0); opacity: 0; } }
+        @keyframes popOut { 
+            0% { transform: scale(1); filter: brightness(2); }
+            100% { transform: scale(0); opacity: 0; } 
+        }
+
+        /* Particle effects untuk clear (simple CSS particles) */
+        .particle {
+            position: absolute;
+            width: 5px; height: 5px;
+            background: #fbbf24;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleBurst 0.5s forwards;
+            z-index: 10;
+        }
+
+        @keyframes particleBurst {
+            0% { transform: translate(0,0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+        }
+
+        /* Screen shake */
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-5px, 0); }
+            20%, 40%, 60%, 80% { transform: translate(5px, 0); }
+        }
 
         /* --- DOCK & PIECES --- */
         .dock {
             width: 100%; max-width: 400px; height: 140px;
             display: flex; justify-content: space-around; align-items: center;
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
         }
         .dock-slot { width: 30%; height: 100%; display: flex; justify-content: center; align-items: center; }
 
         .piece {
             display: grid; gap: 2px;
-            transform: scale(0.65); /* Ukuran di dock */
+            transform: scale(0.65); /* Ukuran kecil di dock */
             cursor: grab;
             transition: transform 0.1s;
         }
 
         .piece-block {
             width: 38px; height: 38px; /* Ukuran dasar blok */
-            border-radius: 4px;
+            border-radius: 5px;
             background-size: cover;
-            box-shadow: 0 2px 2px rgba(0,0,0,0.3);
+            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.2s; /* Untuk animasi saat place */
         }
 
-        /* Saat di-drag */
+        /* --- SAAT DI-DRAG (Perbaikan Shadow & Offset) --- */
         .piece.dragging {
             position: fixed;
             z-index: 9999;
-            pointer-events: none; /* Tembus sentuhan agar bisa deteksi elemen bawahnya */
+            pointer-events: none; /* PENTING: Agar tembus ke board */
             transform: scale(1) !important; /* Ukuran asli saat di drag */
-            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
-            opacity: 0.95;
+            /* Bayangan drop shadow besar ke bawah agar terlihat melayang tinggi */
+            filter: drop-shadow(0 30px 20px rgba(0,0,0,0.6)); 
+            opacity: 1;
         }
 
         /* --- LEADERBOARD & MODALS --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
             display: none; justify-content: center; align-items: center;
             z-index: 10000;
         }
         .modal-content {
-            background: #1e293b; padding: 25px; border-radius: 15px;
+            background: #1e293b; padding: 30px; border-radius: 20px;
             width: 90%; max-width: 350px; text-align: center;
-            border: 1px solid #334155;
+            border: 1px solid #334155; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
         .rank-list {
             text-align: left; max-height: 250px; overflow-y: auto;
-            margin: 15px 0; background: #0f172a; padding: 10px; border-radius: 8px;
+            margin: 20px 0; background: #0f172a; padding: 15px; border-radius: 12px;
         }
         .rank-item {
-            display: flex; justify-content: space-between; padding: 8px 0;
-            border-bottom: 1px solid #334155; font-size: 0.9rem;
+            display: flex; justify-content: space-between; padding: 10px 0;
+            border-bottom: 1px solid #1e293b; font-size: 0.95rem; align-items: center;
         }
         .rank-item:last-child { border: none; }
-        .rank-name { color: #94a3b8; }
-        .rank-score { color: #fbbf24; font-weight: bold; }
+        .rank-name { color: #cbd5e1; font-weight: 500; }
+        .rank-score { color: #fbbf24; font-weight: bold; font-family: monospace; font-size: 1.1rem; }
         
         .btn-primary {
             background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white; border: none; padding: 12px 30px;
-            border-radius: 50px; font-size: 1.1rem; font-weight: bold;
-            cursor: pointer; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            color: white; border: none; padding: 15px 40px;
+            border-radius: 50px; font-size: 1.2rem; font-weight: bold;
+            cursor: pointer; box-shadow: 0 5px 20px rgba(245, 158, 11, 0.4);
+            transition: transform 0.1s;
         }
+        .btn-primary:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
         <div class="user-profile" id="auth-section">
-            <button class="btn-small" onclick="signIn()">Login G+</button>
+            <button class="btn-small" onclick="signIn()"><span style="margin-right:5px;">G</span> Login</button>
         </div>
         <div class="user-profile" id="user-info" style="display:none;">
             <img src="" id="user-pic" class="user-img">
-            <span id="user-name">Player</span>
+            <span id="user-name" style="font-weight:bold; color:#bfdbfe;">Player</span>
         </div>
-        <button class="btn-small" style="background:#4f46e5" onclick="showLeaderboard()">🏆 Rank</button>
+        <button class="btn-small" style="background:#4338ca" onclick="showLeaderboard()">🏆 Rank</button>
     </div>
 
     <div class="score-board">
@@ -172,53 +220,58 @@
 
     <div class="modal-overlay" id="modal-gameover">
         <div class="modal-content">
-            <h2 style="color:#ef4444; margin:0;">GAME OVER</h2>
-            <p style="color:#94a3b8;">Score Kamu</p>
-            <div style="font-size: 2.5rem; font-weight:bold; color:white; margin-bottom:20px;" id="final-score">0</div>
+            <h2 style="color:#ef4444; margin:0; font-size: 2rem;">GAME OVER</h2>
+            <p style="color:#94a3b8; margin-top:5px;">Score Kamu</p>
+            <div style="font-size: 3.5rem; font-weight:800; color:white; margin-bottom:25px; line-height:1;" id="final-score">0</div>
             <button class="btn-primary" onclick="resetGame()">Main Lagi</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="modal-leaderboard">
         <div class="modal-content">
-            <h3>🏆 Top Players</h3>
+            <h3 style="margin:0; color:#fbbf24;">🏆 Top Players</h3>
             <div class="rank-list" id="rank-list">
-                <div style="text-align:center; color:#64748b;">Loading...</div>
+                <div style="text-align:center; color:#64748b;">Loading data...</div>
             </div>
-            <button class="btn-small" onclick="document.getElementById('modal-leaderboard').style.display='none'">Tutup</button>
+            <button class="btn-small" style="background:#334155" onclick="document.getElementById('modal-leaderboard').style.display='none'">Tutup</button>
         </div>
     </div>
+
+    <!-- Audio Elements untuk Sound Effects (gunakan URL free sounds atau placeholder) -->
+    <audio id="placeSound" preload="auto" src="https://freesound.org/data/previews/341/341695_5859677-lq.mp3"></audio> <!-- Contoh thud sound -->
+    <audio id="clearSound" preload="auto" src="https://freesound.org/data/previews/341/341695_5859677-lq.mp3"></audio> <!-- Contoh whoosh -->
+    <audio id="gameOverSound" preload="auto" src="https://freesound.org/data/previews/341/341695_5859677-lq.mp3"></audio> <!-- Contoh fail -->
+    <audio id="bgMusic" preload="auto" loop src="https://freesound.org/data/previews/341/341695_5859677-lq.mp3"></audio> <!-- Contoh calm music -->
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // --- 1. KONFIGURASI FIREBASE ANDA DISINI ---
+        // ============================================
+        // 1. ISI CONFIG FIREBASE ANDA DI SINI
+        // ============================================
         const firebaseConfig = {
-  apiKey: "AIzaSyAF1M_h7A2_2Xacxb2qJw7jX5brhat4CGA",
-  authDomain: "free-b852f.firebaseapp.com",
-  databaseURL: "https://free-b852f-default-rtdb.firebaseio.com",
-  projectId: "free-b852f",
-  storageBucket: "free-b852f.firebasestorage.app",
-  messagingSenderId: "636007240374",
-  appId: "1:636007240374:web:075539b483bf199e1ccc17",
-  measurementId: "G-6EC7QW1145"
-};
+            apiKey: "GANTI_DENGAN_API_KEY_ANDA",
+            authDomain: "GANTI_PROJECT_ID.firebaseapp.com",
+            projectId: "GANTI_PROJECT_ID",
+            storageBucket: "GANTI_PROJECT_ID.appspot.com",
+            messagingSenderId: "GANTI_SENDER_ID",
+            appId: "GANTI_APP_ID"
+        };
 
-        // Initialize Firebase
         let app, auth, db, user;
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
         } catch(e) {
-            console.error("Firebase belum disetting!", e);
+            console.warn("Firebase belum dikonfigurasi. Fitur Leaderboard mati.");
         }
 
-        // --- AUTH LOGIC ---
+        // --- AUTH & DATABASE ---
         window.signIn = () => {
-            if(!auth) return alert("Firebase Config belum diisi!");
+            if(!auth) return alert("Harap isi Firebase Config di kode HTML!");
             const provider = new GoogleAuthProvider();
             signInWithPopup(auth, provider).catch(err => alert(err.message));
         }
@@ -231,40 +284,33 @@
                     document.getElementById('user-info').style.display = 'flex';
                     document.getElementById('user-name').innerText = u.displayName.split(' ')[0];
                     document.getElementById('user-pic').src = u.photoURL;
-                    saveUserData(u); // Simpan data user basic
+                    saveUserData(u);
                 }
             });
         }
 
         async function saveUserData(u) {
-            // Update data user di database untuk keperluan ranking
             try {
                 await setDoc(doc(db, "users", u.uid), {
-                    name: u.displayName,
-                    photo: u.photoURL,
-                    lastLogin: Date.now()
+                    name: u.displayName, photo: u.photoURL, lastLogin: Date.now()
                 }, { merge: true });
-            } catch(e) { console.log("Error save user", e); }
+            } catch(e) {}
         }
 
-        async function saveScore(finalScore) {
+        async function saveScoreToDB(finalScore) {
             if(!user || !db) return;
             try {
-                // Simpan score ke koleksi 'leaderboard'
                 await addDoc(collection(db, "leaderboard"), {
-                    uid: user.uid,
-                    name: user.displayName,
-                    score: finalScore,
-                    date: Date.now()
+                    uid: user.uid, name: user.displayName, score: finalScore, date: Date.now()
                 });
-            } catch(e) { console.error("Gagal simpan score", e); }
+            } catch(e) { console.error(e); }
         }
 
         window.showLeaderboard = async () => {
-            if(!db) return alert("Firebase belum aktif");
+            if(!db) return alert("Firebase Config belum diisi.");
             document.getElementById('modal-leaderboard').style.display = 'flex';
             const listEl = document.getElementById('rank-list');
-            listEl.innerHTML = '<div style="text-align:center;">Loading...</div>';
+            listEl.innerHTML = '<div style="text-align:center; color:#94a3b8;">Mengambil data...</div>';
 
             try {
                 const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(10));
@@ -273,25 +319,28 @@
                 let rank = 1;
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    let color = rank === 1 ? '#fbbf24' : (rank === 2 ? '#94a3b8' : (rank === 3 ? '#b45309' : '#64748b'));
+                    let color = rank === 1 ? '#fbbf24' : (rank === 2 ? '#e2e8f0' : (rank === 3 ? '#b45309' : '#64748b'));
                     html += `
                         <div class="rank-item">
-                            <span style="color:${color}; width:20px; font-weight:bold;">#${rank}</span>
-                            <span class="rank-name">${data.name.substring(0, 15)}</span>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="color:${color}; width:20px; font-weight:bold;">#${rank}</span>
+                                <span class="rank-name">${data.name.substring(0, 12)}</span>
+                            </div>
                             <span class="rank-score">${data.score}</span>
                         </div>
                     `;
                     rank++;
                 });
-                listEl.innerHTML = html || '<div style="text-align:center;">Belum ada data</div>';
+                listEl.innerHTML = html || '<div style="text-align:center;">Belum ada skor.</div>';
             } catch(e) {
-                listEl.innerHTML = 'Error loading data.';
-                console.error(e);
+                listEl.innerHTML = 'Gagal memuat data.';
             }
         }
 
-        // --- GAME LOGIC START ---
+        // --- GAME LOGIC ---
         const GRID_SIZE = 8;
+        const TOUCH_OFFSET_Y = 120; // Naikkan untuk visibilitas lebih baik di touch
+
         const ASSETS = [
             'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block1_rgsmm5.png',
             'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block2_bctdq8.png',
@@ -300,7 +349,7 @@
             'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block5_d0pye8.png'
         ];
 
-        // Definisikan warna fallback agar background tidak transparan
+        // Mapping warna agar background tidak transparan
         const COLORS = {
             'block1': '#e91e63', 'block2': '#2196f3', 'block3': '#4caf50', 
             'block4': '#ff9800', 'block5': '#9c27b0'
@@ -309,8 +358,10 @@
         const SHAPES = [
             { m: [[1]], id: '1' }, { m: [[1,1]], id: '2h' }, { m: [[1],[1]], id: '2v' },
             { m: [[1,1,1]], id: '3h' }, { m: [[1],[1],[1]], id: '3v' },
-            { m: [[1,1],[1,1]], id: 'sq' }, { m: [[1,0],[1,1]], id: 'L1' },
-            { m: [[1,1,1],[0,1,0]], id: 'T' }, { m: [[1,1,1,1]], id: '4h' }
+            { m: [[1,1],[1,1]], id: 'sq' }, { m: [[1,0],[1,1]], id: 'L1' }, { m: [[0,1],[1,1]], id: 'L2' },
+            { m: [[1,1],[1,0]], id: 'L3' }, { m: [[1,1],[0,1]], id: 'L4' },
+            { m: [[1,1,1],[0,1,0]], id: 'T1' }, { m: [[0,1,0],[1,1,1]], id: 'T2' },
+            { m: [[1,1,1,1]], id: '4h' }, { m: [[1],[1],[1],[1]], id: '4v' }
         ];
 
         let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
@@ -319,6 +370,13 @@
         document.getElementById('best-score').innerText = bestScore;
 
         const gridEl = document.getElementById('grid');
+        const placeSound = document.getElementById('placeSound');
+        const clearSound = document.getElementById('clearSound');
+        const gameOverSound = document.getElementById('gameOverSound');
+        const bgMusic = document.getElementById('bgMusic');
+
+        // Mulai background music
+        bgMusic.play().catch(() => {}); // Handle autoplay restrictions
 
         function initGrid() {
             gridEl.innerHTML = '';
@@ -347,7 +405,7 @@
 
         function getColorFromUrl(url) {
             for(let key in COLORS) { if(url.includes(key)) return COLORS[key]; }
-            return '#666';
+            return '#64748b';
         }
 
         function createPiece(container, matrix, texture) {
@@ -356,7 +414,7 @@
             piece.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
             piece.dataset.matrix = JSON.stringify(matrix);
             piece.dataset.texture = texture;
-            piece.dataset.color = getColorFromUrl(texture); // Simpan warna
+            piece.dataset.color = getColorFromUrl(texture);
 
             matrix.forEach(row => {
                 row.forEach(val => {
@@ -364,7 +422,7 @@
                     if (val) {
                         block.classList.add('piece-block');
                         block.style.backgroundImage = `url('${texture}')`;
-                        block.style.backgroundColor = piece.dataset.color; // Pastikan warna dasar ada
+                        block.style.backgroundColor = piece.dataset.color;
                     } else {
                         block.style.width = '38px'; block.style.height = '38px'; block.style.visibility = 'hidden';
                     }
@@ -372,13 +430,12 @@
                 });
             });
 
-            // Touch & Mouse Events
             piece.addEventListener('mousedown', startDrag);
             piece.addEventListener('touchstart', startDrag, {passive: false});
             container.appendChild(piece);
         }
 
-        // --- DRAG LOGIC (REVISED FOR PRECISION) ---
+        // --- DRAG LOGIC (PRESISI TINGGI dengan perbaikan) ---
         let dragged = null;
         let startParent = null;
         let matrix = null;
@@ -387,6 +444,7 @@
 
         function startDrag(e) {
             e.preventDefault();
+            const evt = e.touches ? e.touches[0] : e;
             dragged = e.currentTarget;
             startParent = dragged.parentElement;
             matrix = JSON.parse(dragged.dataset.matrix);
@@ -394,9 +452,31 @@
             baseColor = dragged.dataset.color;
 
             dragged.classList.add('dragging');
-            document.body.appendChild(dragged);
+            
+            // Samakan ukuran visual piece dengan ukuran grid saat di drag
+            const cellRect = gridEl.querySelector('.cell').getBoundingClientRect();
+            const cellSize = cellRect.width;
+            const gap = parseFloat(getComputedStyle(gridEl).gap);
+            dragged.style.gap = gap + 'px';
 
-            updatePosition(e);
+            const blocks = dragged.querySelectorAll('.piece-block');
+            blocks.forEach(b => {
+                if (b.style.visibility !== 'hidden') {
+                    b.style.width = cellSize + 'px';
+                    b.style.height = cellSize + 'px';
+                }
+            });
+
+            // Hitung ukuran piece secara dynamic
+            const pieceCols = matrix[0].length;
+            const pieceRows = matrix.length;
+            const pieceWidth = pieceCols * cellSize + (pieceCols - 1) * gap;
+            const pieceHeight = pieceRows * cellSize + (pieceRows - 1) * gap;
+            dragged.dataset.pieceWidth = pieceWidth;
+            dragged.dataset.pieceHeight = pieceHeight;
+
+            document.body.appendChild(dragged);
+            updatePosition(evt.clientX, evt.clientY);
 
             document.addEventListener('mousemove', moveDrag);
             document.addEventListener('touchmove', moveDrag, {passive: false});
@@ -406,10 +486,12 @@
 
         function moveDrag(e) {
             e.preventDefault();
-            updatePosition(e);
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            // Highlight Logic
-            const {r, c} = getGridPos(e);
+            updatePosition(clientX, clientY);
+            
+            const {r, c} = getGridPos(clientX, clientY);
             document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
             
             if (r !== null && canPlace(r, c, matrix)) {
@@ -417,52 +499,62 @@
             }
         }
 
-        function updatePosition(e) {
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            // FIX PRESISI:
-            // 1. Ambil lebar piece
-            const rect = dragged.getBoundingClientRect();
-            // 2. Set posisi horizontal tepat di tengah jari
-            dragged.style.left = (clientX - (rect.width / 2)) + 'px';
-            // 3. Set posisi vertikal DI ATAS jari (offset -80px) agar tidak tertutup tangan
-            dragged.style.top = (clientY - rect.height - 50) + 'px'; 
+        function updatePosition(x, y) {
+            if(!dragged) return;
+            const pieceWidth = parseFloat(dragged.dataset.pieceWidth);
+            const pieceHeight = parseFloat(dragged.dataset.pieceHeight);
+            // Posisikan tengah block di X jari, dan Y naik ke atas
+            dragged.style.left = (x - (pieceWidth / 2)) + 'px';
+            dragged.style.top = (y - (pieceHeight / 2) - TOUCH_OFFSET_Y) + 'px'; 
         }
 
-        function getGridPos(e) {
-            const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-            const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-            
-            // Kita cek elemen yang ada DI BAWAH offset visual piece
-            // Karena piece kita angkat 50px-80px ke atas, kita harus "nembak" ke lokasi itu
-            const targetEl = document.elementFromPoint(clientX, clientY - 80);
-            
+        function getGridPos(x, y) {
+            // Sembunyikan piece sebentar agar sensor bisa menembus ke papan
+            dragged.style.display = 'none';
+            // Cek elemen tepat di lokasi visual block (offset Y)
+            const targetEl = document.elementFromPoint(x, y - TOUCH_OFFSET_Y);
+            dragged.style.display = 'grid'; 
+
             if (targetEl && targetEl.classList.contains('cell')) {
-                return { r: parseInt(targetEl.dataset.r), c: parseInt(targetEl.dataset.c) };
+                const centerR = Math.floor(matrix.length / 2);
+                const centerC = Math.floor(matrix[0].length / 2);
+                const cellR = parseInt(targetEl.dataset.r);
+                const cellC = parseInt(targetEl.dataset.c);
+                return { r: cellR - centerR, c: cellC - centerC };
             }
             return { r: null, c: null };
         }
 
         function endDrag(e) {
-            const {r, c} = getGridPos(e);
+            const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+            const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            
+            const {r, c} = getGridPos(clientX, clientY);
             document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
 
+            let placed = false;
             if (r !== null && canPlace(r, c, matrix)) {
                 placePiece(r, c, matrix, texture, baseColor);
-                dragged.remove();
-                
-                // Score
+                placed = true;
                 score += matrix.flat().filter(x=>x).length * 10;
-                checkLines();
                 document.getElementById('score').innerText = score;
+                checkLines();
+                dragged.remove();
                 spawnPieces();
-            } else {
-                // Return to dock
+            }
+
+            if (!placed) {
+                // Kembalikan ke dock dan reset ukuran
                 dragged.classList.remove('dragging');
                 dragged.style.position = '';
-                dragged.style.left = ''; dragged.style.top = '';
-                dragged.style.transform = ''; // Reset scale
+                dragged.style.left = ''; dragged.style.top = ''; dragged.style.gap = '2px';
+                
+                const blocks = dragged.querySelectorAll('.piece-block');
+                blocks.forEach(b => {
+                    if(b.style.visibility !== 'hidden') {
+                        b.style.width = '38px'; b.style.height = '38px';
+                    }
+                });
                 startParent.appendChild(dragged);
             }
 
@@ -478,7 +570,7 @@
             for(let r=0; r<m.length; r++) {
                 for(let c=0; c<m[0].length; c++) {
                     if(m[r][c]) {
-                        if(sr+r >= GRID_SIZE || sc+c >= GRID_SIZE) return false;
+                        if(sr+r < 0 || sc+c < 0 || sr+r >= GRID_SIZE || sc+c >= GRID_SIZE) return false;
                         if(grid[sr+r][sc+c] !== null) return false;
                     }
                 }
@@ -505,11 +597,16 @@
                         const cell = document.querySelector(`.cell[data-r="${sr+r}"][data-c="${sc+c}"]`);
                         cell.classList.add('filled');
                         cell.style.backgroundImage = `url('${tex}')`;
-                        // FIX TRANSPARANSI: Set background color eksplisit
-                        cell.style.backgroundColor = col; 
+                        cell.style.backgroundColor = col; // Set warna background agar tidak bolong
+                        // Animasi placement: scale in
+                        cell.style.transform = 'scale(0)';
+                        setTimeout(() => { cell.style.transform = 'scale(1)'; }, 10);
                     }
                 }
             }
+            // Play sound dan vibrate
+            placeSound.play();
+            if ('vibrate' in navigator) navigator.vibrate(100);
         }
 
         function checkLines() {
@@ -526,22 +623,48 @@
             cols.forEach(c => { for(let r=0; r<GRID_SIZE; r++) cleared.add(`${r},${c}`); });
 
             if (cleared.size > 0) {
-                // Combo Bonus
                 let multiplier = rows.length + cols.length;
                 score += (cleared.size * 10) * multiplier;
                 document.getElementById('score').innerText = score;
+
+                // Play clear sound dan vibrate lebih kuat
+                clearSound.play();
+                if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+
+                // Screen shake jika multiple lines
+                if (multiplier > 1) {
+                    gridEl.classList.add('shake');
+                    setTimeout(() => gridEl.classList.remove('shake'), 500);
+                }
 
                 cleared.forEach(coord => {
                     const [r, c] = coord.split(',');
                     grid[r][c] = null;
                     const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
                     cell.classList.add('cleared');
+                    // Tambah particles
+                    createParticles(cell);
                     setTimeout(() => {
                         cell.classList.remove('filled', 'cleared');
                         cell.style.backgroundImage = '';
-                        cell.style.backgroundColor = ''; // Reset color
+                        cell.style.backgroundColor = '';
                     }, 300);
                 });
+            }
+        }
+
+        // Fungsi untuk create simple particles
+        function createParticles(cell) {
+            const rect = cell.getBoundingClientRect();
+            for (let i = 0; i < 10; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.left = rect.left + rect.width / 2 + 'px';
+                particle.style.top = rect.top + rect.height / 2 + 'px';
+                particle.style.setProperty('--dx', Math.random() * 100 - 50 + 'px');
+                particle.style.setProperty('--dy', Math.random() * 100 - 50 + 'px');
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 500);
             }
         }
 
@@ -561,13 +684,16 @@
 
             if(!possible) {
                 setTimeout(() => {
+                    gameOverSound.play();
+                    if ('vibrate' in navigator) navigator.vibrate(500);
                     document.getElementById('modal-gameover').style.display = 'flex';
                     document.getElementById('final-score').innerText = score;
                     if(score > bestScore) {
                         localStorage.setItem('blockBlastBest', score);
                         bestScore = score;
+                        document.getElementById('best-score').innerText = bestScore;
                     }
-                    if(user) saveScore(score); // Simpan ke leaderboard jika login
+                    if(user) saveScoreToDB(score);
                 }, 1000);
             }
         }
@@ -584,9 +710,10 @@
             `;
             document.getElementById('modal-gameover').style.display = 'none';
             spawnPieces();
+            bgMusic.play().catch(() => {});
         }
 
-        // Init
+        // START
         initGrid();
         spawnPieces();
 
