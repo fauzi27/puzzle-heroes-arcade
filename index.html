@@ -1,722 +1,699 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Block Blast: Heroes Arcade</title>
-    <style>
-        :root {
-            --bg-color: #171c3a; 
-            --grid-bg: #0f132a;
-            --cell-empty: #1c2340;
-            --gap: 4px;
-        }
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>Block Blast: Heroes Arcade</title>
+ <style>
+ :root {
+ --bg-color: #171c3a; 
+ --grid-bg: #0f132a;
+ --cell-empty: #1c2340;
+ --gap: 4px;
+ }
 
-        * { box-sizing: border-box; touch-action: none; user-select: none; font-family: 'Segoe UI', sans-serif; }
+ * { box-sizing: border-box; touch-action: none; user-select: none; font-family: 'Segoe UI', sans-serif; }
 
-        body {
-            margin: 0; padding: 0;
-            background-color: var(--bg-color);
-            color: white;
-            display: flex; flex-direction: column; align-items: center;
-            height: 100dvh; overflow: hidden;
-        }
+ body {
+ margin: 0; padding: 0;
+ background-color: var(--bg-color);
+ color: white;
+ display: flex; flex-direction: column; align-items: center;
+ height: 100dvh; overflow: hidden;
+ }
 
-        /* --- UI ATAS --- */
-        .top-bar {
-            width: 100%; max-width: 450px; padding: 15px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        
-        .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
-        .user-img { width: 35px; height: 35px; border-radius: 50%; background: #ddd; object-fit: cover; }
-        .btn-small {
-            background: #2563eb; color: white; border: none; padding: 8px 15px;
-            border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold;
-            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-        }
+ /* --- UI ATAS --- */
+ .top-bar {
+ width: 100%; max-width: 450px; padding: 15px;
+ display: flex; justify-content: space-between; align-items: center;
+ }
+ 
+ .user-profile { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+ .user-img { width: 35px; height: 35px; border-radius: 50%; background: #ddd; object-fit: cover; }
+ .btn-small {
+ background: #2563eb; color: white; border: none; padding: 8px 15px;
+ border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold;
+ box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+ }
 
-        .score-board { text-align: center; margin-bottom: 10px; margin-top: -10px; }
-        .score-val { font-size: 3.5rem; font-weight: 800; text-shadow: 0 0 20px rgba(255, 255, 255, 0.2); line-height: 1; }
-        .best-val { color: #fbbf24; font-size: 1rem; font-weight: bold; letter-spacing: 1px; }
+ .score-board { text-align: center; margin-bottom: 10px; margin-top: -10px; }
+ .score-val { font-size: 3.5rem; font-weight: 800; text-shadow: 0 0 20px rgba(255, 255, 255, 0.2); line-height: 1; transition: transform 0.2s; }
+ .score-val.score-pop { transform: scale(1.2); }
+ .best-val { color: #fbbf24; font-size: 1rem; font-weight: bold; letter-spacing: 1px; }
 
-        /* --- PAPAN GAME (BOARD) --- */
-        .game-board {
-            background-color: var(--grid-bg);
-            padding: 12px;
-            border-radius: 16px;
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            gap: var(--gap);
-            width: 90vw; max-width: 400px;
-            aspect-ratio: 1/1;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-            margin-bottom: 20px;
-            border: 2px solid #2d3748;
-            transition: transform 0.1s ease; /* Untuk screen shake */
-        }
+ /* --- PAPAN GAME (BOARD) --- */
+ .game-board {
+ background-color: var(--grid-bg);
+ padding: 12px;
+ border-radius: 16px;
+ display: grid;
+ grid-template-columns: repeat(8, 1fr);
+ grid-template-rows: repeat(8, 1fr);
+ gap: var(--gap);
+ width: 90vw; max-width: 400px;
+ aspect-ratio: 1/1;
+ box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+ margin-bottom: 20px;
+ border: 2px solid #2d3748;
+ position: relative; /* Untuk particle overlay */
+ }
 
-        .cell {
-            background-color: var(--cell-empty);
-            border-radius: 6px;
-            width: 100%; height: 100%;
-            /* Bayangan Dalam (Inset) untuk efek lubang */
-            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.08);
-            position: relative;
-            transition: transform 0.2s ease, background-color 0.3s; /* Tambah transisi untuk animasi place */
-        }
+ .cell {
+ background-color: var(--cell-empty);
+ border-radius: 6px;
+ width: 100%; height: 100%;
+ /* Bayangan Dalam (Inset) untuk efek lubang */
+ box-shadow: inset 3px 3px 6px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.08);
+ position: relative;
+ }
 
-        /* Block yang sudah terisi di board */
-        .cell.filled {
-            background-size: cover;
-            background-position: center;
-            /* Bayangan Luar (Outset) agar terlihat timbul */
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
-            z-index: 1;
-            border: 1px solid rgba(0,0,0,0.2);
-        }
+ /* Block yang sudah terisi di board */
+ .cell.filled {
+ background-size: cover;
+ background-position: center;
+ /* Bayangan Luar (Outset) agar terlihat timbul */
+ box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+ z-index: 1;
+ border: 1px solid rgba(0,0,0,0.2);
+ }
 
-        /* Indikator posisi drop dengan glow */
-        .cell.highlight {
-            background-color: rgba(255, 255, 255, 0.15);
-            box-shadow: inset 0 0 15px rgba(255,255,255,0.1), 0 0 10px rgba(255,255,255,0.3);
-            animation: pulse 1s infinite alternate;
-        }
+ /* Indikator posisi drop dengan glow */
+ .cell.highlight {
+ background-color: rgba(255, 255, 255, 0.15);
+ box-shadow: inset 0 0 15px rgba(255,255,255,0.1), 0 0 10px rgba(255,255,255,0.5); /* Glow effect */
+ }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.05); }
-        }
+ .cell.placed { animation: placeAnim 0.3s ease-in-out; }
+ @keyframes placeAnim {
+ 0% { transform: scale(0.5); opacity: 0.5; }
+ 100% { transform: scale(1); opacity: 1; }
+ }
 
-        .cleared { animation: popOut 0.3s forwards; }
-        @keyframes popOut { 
-            0% { transform: scale(1); filter: brightness(2); }
-            100% { transform: scale(0); opacity: 0; } 
-        }
+ .cleared { animation: popOut 0.3s forwards; }
+ @keyframes popOut { 
+ 0% { transform: scale(1); filter: brightness(2); }
+ 100% { transform: scale(0); opacity: 0; } 
+ }
 
-        /* Particle effects untuk clear (simple CSS particles) */
-        .particle {
-            position: absolute;
-            width: 5px; height: 5px;
-            background: #fbbf24;
-            border-radius: 50%;
-            pointer-events: none;
-            animation: particleBurst 0.5s forwards;
-            z-index: 10;
-        }
+ /* Particle untuk clear */
+ .particle {
+ position: absolute;
+ width: 5px; height: 5px;
+ border-radius: 50%;
+ pointer-events: none;
+ animation: particleExplode 0.5s ease-out forwards;
+ }
+ @keyframes particleExplode { 
+ 0% { transform: translate(0, 0) scale(1); opacity: 1; }
+ 100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } 
+ }
 
-        @keyframes particleBurst {
-            0% { transform: translate(0,0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
-        }
+ /* --- DOCK & PIECES --- */
+ .dock {
+ width: 100%; max-width: 400px; height: 140px;
+ display: flex; justify-content: space-around; align-items: center;
+ background: rgba(255,255,255,0.03);
+ border-radius: 20px;
+ }
+ .dock-slot { width: 30%; height: 100%; display: flex; justify-content: center; align-items: center; }
 
-        /* Screen shake */
-        .shake {
-            animation: shake 0.5s;
-        }
+ .piece {
+ display: grid; gap: 2px;
+ transform: scale(0.65); /* Ukuran kecil di dock */
+ cursor: grab;
+ transition: transform 0.1s;
+ }
 
-        @keyframes shake {
-            0%, 100% { transform: translate(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translate(-5px, 0); }
-            20%, 40%, 60%, 80% { transform: translate(5px, 0); }
-        }
+ .piece-block {
+ width: 38px; height: 38px; /* Ukuran dasar blok */
+ border-radius: 5px;
+ background-size: cover;
+ box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+ border: 1px solid rgba(255,255,255,0.1);
+ }
 
-        /* --- DOCK & PIECES --- */
-        .dock {
-            width: 100%; max-width: 400px; height: 140px;
-            display: flex; justify-content: space-around; align-items: center;
-            background: rgba(255,255,255,0.03);
-            border-radius: 20px;
-        }
-        .dock-slot { width: 30%; height: 100%; display: flex; justify-content: center; align-items: center; }
+ /* --- SAAT DI-DRAG (Perbaikan Shadow & Offset) --- */
+ .piece.dragging {
+ position: fixed;
+ z-index: 9999;
+ pointer-events: none; /* PENTING: Agar tembus ke board */
+ transform: scale(1) !important; /* Ukuran asli saat di drag */
+ /* Bayangan drop shadow besar ke bawah agar terlihat melayang tinggi */
+ filter: drop-shadow(0 30px 20px rgba(0,0,0,0.6)); 
+ opacity: 1;
+ }
 
-        .piece {
-            display: grid; gap: 2px;
-            transform: scale(0.65); /* Ukuran kecil di dock */
-            cursor: grab;
-            transition: transform 0.1s;
-        }
-
-        .piece-block {
-            width: 38px; height: 38px; /* Ukuran dasar blok */
-            border-radius: 5px;
-            background-size: cover;
-            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: transform 0.2s; /* Untuk animasi saat place */
-        }
-
-        /* --- SAAT DI-DRAG (Perbaikan Shadow & Offset) --- */
-        .piece.dragging {
-            position: fixed;
-            z-index: 9999;
-            pointer-events: none; /* PENTING: Agar tembus ke board */
-            transform: scale(1) !important; /* Ukuran asli saat di drag */
-            /* Bayangan drop shadow besar ke bawah agar terlihat melayang tinggi */
-            filter: drop-shadow(0 30px 20px rgba(0,0,0,0.6)); 
-            opacity: 1;
-        }
-
-        /* --- LEADERBOARD & MODALS --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-            display: none; justify-content: center; align-items: center;
-            z-index: 10000;
-        }
-        .modal-content {
-            background: #1e293b; padding: 30px; border-radius: 20px;
-            width: 90%; max-width: 350px; text-align: center;
-            border: 1px solid #334155; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-        .rank-list {
-            text-align: left; max-height: 250px; overflow-y: auto;
-            margin: 20px 0; background: #0f172a; padding: 15px; border-radius: 12px;
-        }
-        .rank-item {
-            display: flex; justify-content: space-between; padding: 10px 0;
-            border-bottom: 1px solid #1e293b; font-size: 0.95rem; align-items: center;
-        }
-        .rank-item:last-child { border: none; }
-        .rank-name { color: #cbd5e1; font-weight: 500; }
-        .rank-score { color: #fbbf24; font-weight: bold; font-family: monospace; font-size: 1.1rem; }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white; border: none; padding: 15px 40px;
-            border-radius: 50px; font-size: 1.2rem; font-weight: bold;
-            cursor: pointer; box-shadow: 0 5px 20px rgba(245, 158, 11, 0.4);
-            transition: transform 0.1s;
-        }
-        .btn-primary:active { transform: scale(0.95); }
-    </style>
+ /* --- LEADERBOARD & MODALS --- */
+ .modal-overlay {
+ position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+ background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+ display: none; justify-content: center; align-items: center;
+ z-index: 10000;
+ }
+ .modal-content {
+ background: #1e293b; padding: 30px; border-radius: 20px;
+ width: 90%; max-width: 350px; text-align: center;
+ border: 1px solid #334155; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+ }
+ .rank-list {
+ text-align: left; max-height: 250px; overflow-y: auto;
+ margin: 20px 0; background: #0f172a; padding: 15px; border-radius: 12px;
+ }
+ .rank-item {
+ display: flex; justify-content: space-between; padding: 10px 0;
+ border-bottom: 1px solid #1e293b; font-size: 0.95rem; align-items: center;
+ }
+ .rank-item:last-child { border: none; }
+ .rank-name { color: #cbd5e1; font-weight: 500; }
+ .rank-score { color: #fbbf24; font-weight: bold; font-family: monospace; font-size: 1.1rem; }
+ 
+ .btn-primary {
+ background: linear-gradient(135deg, #f59e0b, #d97706);
+ color: white; border: none; padding: 15px 40px;
+ border-radius: 50px; font-size: 1.2rem; font-weight: bold;
+ cursor: pointer; box-shadow: 0 5px 20px rgba(245, 158, 11, 0.4);
+ transition: transform 0.1s;
+ }
+ .btn-primary:active { transform: scale(0.95); }
+ </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="user-profile" id="auth-section">
-            <button class="btn-small" onclick="signIn()"><span style="margin-right:5px;">G</span> Login</button>
-        </div>
-        <div class="user-profile" id="user-info" style="display:none;">
-            <img src="" id="user-pic" class="user-img">
-            <span id="user-name" style="font-weight:bold; color:#bfdbfe;">Player</span>
-        </div>
-        <button class="btn-small" style="background:#4338ca" onclick="showLeaderboard()">🏆 Rank</button>
-    </div>
+ <div class="top-bar">
+ <div class="user-profile" id="auth-section">
+ <button class="btn-small" onclick="signIn()"><span style="margin-right:5px;">G</span> Login</button>
+ </div>
+ <div class="user-profile" id="user-info" style="display:none;">
+ <img src="" id="user-pic" class="user-img">
+ <span id="user-name" style="font-weight:bold; color:#bfdbfe;">Player</span>
+ </div>
+ <button class="btn-small" style="background:#4338ca" onclick="showLeaderboard()">🏆 Rank</button>
+ </div>
 
-    <div class="score-board">
-        <div class="best-val">BEST: <span id="best-score">0</span></div>
-        <div class="score-val" id="score">0</div>
-    </div>
+ <div class="score-board">
+ <div class="best-val">BEST: <span id="best-score">0</span></div>
+ <div class="score-val" id="score">0</div>
+ </div>
 
-    <div class="game-board" id="grid"></div>
+ <div class="game-board" id="grid"></div>
 
-    <div class="dock" id="dock">
-        <div class="dock-slot" id="slot-0"></div>
-        <div class="dock-slot" id="slot-1"></div>
-        <div class="dock-slot" id="slot-2"></div>
-    </div>
+ <div class="dock" id="dock">
+ <div class="dock-slot" id="slot-0"></div>
+ <div class="dock-slot" id="slot-1"></div>
+ <div class="dock-slot" id="slot-2"></div>
+ </div>
 
-    <div class="modal-overlay" id="modal-gameover">
-        <div class="modal-content">
-            <h2 style="color:#ef4444; margin:0; font-size: 2rem;">GAME OVER</h2>
-            <p style="color:#94a3b8; margin-top:5px;">Score Kamu</p>
-            <div style="font-size: 3.5rem; font-weight:800; color:white; margin-bottom:25px; line-height:1;" id="final-score">0</div>
-            <button class="btn-primary" onclick="resetGame()">Main Lagi</button>
-        </div>
-    </div>
+ <div class="modal-overlay" id="modal-gameover">
+ <div class="modal-content">
+ <h2 style="color:#ef4444; margin:0; font-size: 2rem;">GAME OVER</h2>
+ <p style="color:#94a3b8; margin-top:5px;">Score Kamu</p>
+ <div style="font-size: 3.5rem; font-weight:800; color:white; margin-bottom:25px; line-height:1;" id="final-score">0</div>
+ <button class="btn-primary" onclick="resetGame()">Main Lagi</button>
+ </div>
+ </div>
 
-    <div class="modal-overlay" id="modal-leaderboard">
-        <div class="modal-content">
-            <h3 style="margin:0; color:#fbbf24;">🏆 Top Players</h3>
-            <div class="rank-list" id="rank-list">
-                <div style="text-align:center; color:#64748b;">Loading data...</div>
-            </div>
-            <button class="btn-small" style="background:#334155" onclick="document.getElementById('modal-leaderboard').style.display='none'">Tutup</button>
-        </div>
-    </div>
+ <div class="modal-overlay" id="modal-leaderboard">
+ <div class="modal-content">
+ <h3 style="margin:0; color:#fbbf24;">🏆 Top Players</h3>
+ <div class="rank-list" id="rank-list">
+ <div style="text-align:center; color:#64748b;">Loading data...</div>
+ </div>
+ <button class="btn-small" style="background:#334155" onclick="document.getElementById('modal-leaderboard').style.display='none'">Tutup</button>
+ </div>
+ </div>
 
-    <!-- Audio Elements untuk Sound Effects (gunakan URL free sounds atau placeholder) -->
-    <audio id="placeSound" preload="auto" src="https://freesound.org/data/previews/341/341695_5859677-lq.mp3"></audio> <!-- Contoh thud sound -->
-    <audio id="clearSound" preload="auto" src="https://freesound.org/data/previews/341/341695_5859677-lq.mp3"></audio> <!-- Contoh whoosh -->
-    <audio id="gameOverSound" preload="auto" src="https://freesound.org/data/previews/341/341695_5859677-lq.mp3"></audio> <!-- Contoh fail -->
-    <audio id="bgMusic" preload="auto" loop src="https://freesound.org/data/previews/341/341695_5859677-lq.mp3"></audio> <!-- Contoh calm music -->
+ <script type="module">
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+ import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+ import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, setDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+ // ============================================
+ // 1. ISI CONFIG FIREBASE ANDA DI SINI
+ // ============================================
+ const firebaseConfig = {
+ apiKey: "GANTI_DENGAN_API_KEY_ANDA",
+ authDomain: "GANTI_PROJECT_ID.firebaseapp.com",
+ projectId: "GANTI_PROJECT_ID",
+ storageBucket: "GANTI_PROJECT_ID.appspot.com",
+ messagingSenderId: "GANTI_SENDER_ID",
+ appId: "GANTI_APP_ID"
+ };
 
-        // ============================================
-        // 1. ISI CONFIG FIREBASE ANDA DI SINI
-        // ============================================
-        const firebaseConfig = {
-            apiKey: "GANTI_DENGAN_API_KEY_ANDA",
-            authDomain: "GANTI_PROJECT_ID.firebaseapp.com",
-            projectId: "GANTI_PROJECT_ID",
-            storageBucket: "GANTI_PROJECT_ID.appspot.com",
-            messagingSenderId: "GANTI_SENDER_ID",
-            appId: "GANTI_APP_ID"
-        };
+ let app, auth, db, user;
+ try {
+ app = initializeApp(firebaseConfig);
+ auth = getAuth(app);
+ db = getFirestore(app);
+ } catch(e) {
+ console.warn("Firebase belum dikonfigurasi. Fitur Leaderboard mati.");
+ }
 
-        let app, auth, db, user;
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch(e) {
-            console.warn("Firebase belum dikonfigurasi. Fitur Leaderboard mati.");
-        }
+ // --- AUTH & DATABASE ---
+ window.signIn = () => {
+ if(!auth) return alert("Harap isi Firebase Config di kode HTML!");
+ const provider = new GoogleAuthProvider();
+ signInWithPopup(auth, provider).catch(err => alert(err.message));
+ }
 
-        // --- AUTH & DATABASE ---
-        window.signIn = () => {
-            if(!auth) return alert("Harap isi Firebase Config di kode HTML!");
-            const provider = new GoogleAuthProvider();
-            signInWithPopup(auth, provider).catch(err => alert(err.message));
-        }
+ if(auth) {
+ onAuthStateChanged(auth, (u) => {
+ if (u) {
+ user = u;
+ document.getElementById('auth-section').style.display = 'none';
+ document.getElementById('user-info').style.display = 'flex';
+ document.getElementById('user-name').innerText = u.displayName.split(' ')[0];
+ document.getElementById('user-pic').src = u.photoURL;
+ saveUserData(u);
+ }
+ });
+ }
 
-        if(auth) {
-            onAuthStateChanged(auth, (u) => {
-                if (u) {
-                    user = u;
-                    document.getElementById('auth-section').style.display = 'none';
-                    document.getElementById('user-info').style.display = 'flex';
-                    document.getElementById('user-name').innerText = u.displayName.split(' ')[0];
-                    document.getElementById('user-pic').src = u.photoURL;
-                    saveUserData(u);
-                }
-            });
-        }
+ async function saveUserData(u) {
+ try {
+ await setDoc(doc(db, "users", u.uid), {
+ name: u.displayName, photo: u.photoURL, lastLogin: Date.now()
+ }, { merge: true });
+ } catch(e) {}
+ }
 
-        async function saveUserData(u) {
-            try {
-                await setDoc(doc(db, "users", u.uid), {
-                    name: u.displayName, photo: u.photoURL, lastLogin: Date.now()
-                }, { merge: true });
-            } catch(e) {}
-        }
+ async function saveScoreToDB(finalScore) {
+ if(!user || !db) return;
+ try {
+ await addDoc(collection(db, "leaderboard"), {
+ uid: user.uid, name: user.displayName, score: finalScore, date: Date.now()
+ });
+ } catch(e) { console.error(e); }
+ }
 
-        async function saveScoreToDB(finalScore) {
-            if(!user || !db) return;
-            try {
-                await addDoc(collection(db, "leaderboard"), {
-                    uid: user.uid, name: user.displayName, score: finalScore, date: Date.now()
-                });
-            } catch(e) { console.error(e); }
-        }
+ window.showLeaderboard = async () => {
+ if(!db) return alert("Firebase Config belum diisi.");
+ document.getElementById('modal-leaderboard').style.display = 'flex';
+ const listEl = document.getElementById('rank-list');
+ listEl.innerHTML = '<div style="text-align:center; color:#94a3b8;">Mengambil data...</div>';
 
-        window.showLeaderboard = async () => {
-            if(!db) return alert("Firebase Config belum diisi.");
-            document.getElementById('modal-leaderboard').style.display = 'flex';
-            const listEl = document.getElementById('rank-list');
-            listEl.innerHTML = '<div style="text-align:center; color:#94a3b8;">Mengambil data...</div>';
+ const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(10));
+ // Gunakan onSnapshot untuk live update
+ const unsubscribe = onSnapshot(q, (querySnapshot) => {
+ let html = '';
+ let rank = 1;
+ querySnapshot.forEach((doc) => {
+ const data = doc.data();
+ let color = rank === 1 ? '#fbbf24' : (rank === 2 ? '#e2e8f0' : (rank === 3 ? '#b45309' : '#64748b'));
+ html += `
+ <div class="rank-item">
+ <div style="display:flex; align-items:center; gap:10px;">
+ <span style="color:${color}; width:20px; font-weight:bold;">#${rank}</span>
+ <span class="rank-name">${data.name.substring(0, 12)}</span>
+ </div>
+ <span class="rank-score">${data.score}</span>
+ </div>
+ `;
+ rank++;
+ });
+ listEl.innerHTML = html || '<div style="text-align:center;">Belum ada skor.</div>';
+ });
 
-            try {
-                const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(10));
-                const querySnapshot = await getDocs(q);
-                let html = '';
-                let rank = 1;
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    let color = rank === 1 ? '#fbbf24' : (rank === 2 ? '#e2e8f0' : (rank === 3 ? '#b45309' : '#64748b'));
-                    html += `
-                        <div class="rank-item">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span style="color:${color}; width:20px; font-weight:bold;">#${rank}</span>
-                                <span class="rank-name">${data.name.substring(0, 12)}</span>
-                            </div>
-                            <span class="rank-score">${data.score}</span>
-                        </div>
-                    `;
-                    rank++;
-                });
-                listEl.innerHTML = html || '<div style="text-align:center;">Belum ada skor.</div>';
-            } catch(e) {
-                listEl.innerHTML = 'Gagal memuat data.';
-            }
-        }
+ // Unsubscribe saat modal ditutup
+ const closeBtn = document.querySelector('#modal-leaderboard .btn-small');
+ closeBtn.addEventListener('click', () => unsubscribe(), {once: true});
+ }
 
-        // --- GAME LOGIC ---
-        const GRID_SIZE = 8;
-        const TOUCH_OFFSET_Y = 120; // Naikkan untuk visibilitas lebih baik di touch
+ // --- GAME LOGIC ---
+ const GRID_SIZE = 8;
+ const TOUCH_OFFSET_Y = 120; // Naikkan untuk lebih baik di mobile
+ const HIGHLIGHT_OFFSET_ADJUST = 5; // Adjust selisih maksimal 5px untuk alignment
 
-        const ASSETS = [
-            'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block1_rgsmm5.png',
-            'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block2_bctdq8.png',
-            'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block3_lt4n75.png',
-            'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908102/block4_h3yano.png',
-            'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block5_d0pye8.png'
-        ];
+ const ASSETS = [
+ 'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block1_rgsmm5.png',
+ 'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block2_bctdq8.png',
+ 'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block3_lt4n75.png',
+ 'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908102/block4_h3yano.png',
+ 'https://res.cloudinary.com/dsutaioqw/image/upload/v1770908103/block5_d0pye8.png'
+ ];
 
-        // Mapping warna agar background tidak transparan
-        const COLORS = {
-            'block1': '#e91e63', 'block2': '#2196f3', 'block3': '#4caf50', 
-            'block4': '#ff9800', 'block5': '#9c27b0'
-        };
+ // Mapping warna agar background tidak transparan
+ const COLORS = {
+ 'block1': '#e91e63', 'block2': '#2196f3', 'block3': '#4caf50', 
+ 'block4': '#ff9800', 'block5': '#9c27b0'
+ };
 
-        const SHAPES = [
-            { m: [[1]], id: '1' }, { m: [[1,1]], id: '2h' }, { m: [[1],[1]], id: '2v' },
-            { m: [[1,1,1]], id: '3h' }, { m: [[1],[1],[1]], id: '3v' },
-            { m: [[1,1],[1,1]], id: 'sq' }, { m: [[1,0],[1,1]], id: 'L1' }, { m: [[0,1],[1,1]], id: 'L2' },
-            { m: [[1,1],[1,0]], id: 'L3' }, { m: [[1,1],[0,1]], id: 'L4' },
-            { m: [[1,1,1],[0,1,0]], id: 'T1' }, { m: [[0,1,0],[1,1,1]], id: 'T2' },
-            { m: [[1,1,1,1]], id: '4h' }, { m: [[1],[1],[1],[1]], id: '4v' }
-        ];
+ const SHAPES = [
+ { m: [[1]], id: '1' }, { m: [[1,1]], id: '2h' }, { m: [[1],[1]], id: '2v' },
+ { m: [[1,1,1]], id: '3h' }, { m: [[1],[1],[1]], id: '3v' },
+ { m: [[1,1],[1,1]], id: 'sq' }, { m: [[1,0],[1,1]], id: 'L1' }, { m: [[0,1],[1,1]], id: 'L2' },
+ { m: [[1,1],[1,0]], id: 'L3' }, { m: [[1,1],[0,1]], id: 'L4' },
+ { m: [[1,1,1],[0,1,0]], id: 'T1' }, { m: [[0,1,0],[1,1,1]], id: 'T2' },
+ { m: [[1,1,1,1]], id: '4h' }, { m: [[1],[1],[1],[1]], id: '4v' }
+ ];
 
-        let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
-        let score = 0;
-        let bestScore = localStorage.getItem('blockBlastBest') || 0;
-        document.getElementById('best-score').innerText = bestScore;
+ let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+ let score = 0;
+ let bestScore = localStorage.getItem('blockBlastBest') || 0;
+ document.getElementById('best-score').innerText = bestScore;
 
-        const gridEl = document.getElementById('grid');
-        const placeSound = document.getElementById('placeSound');
-        const clearSound = document.getElementById('clearSound');
-        const gameOverSound = document.getElementById('gameOverSound');
-        const bgMusic = document.getElementById('bgMusic');
+ const gridEl = document.getElementById('grid');
+ const scoreEl = document.getElementById('score');
 
-        // Mulai background music
-        bgMusic.play().catch(() => {}); // Handle autoplay restrictions
+ function initGrid() {
+ gridEl.innerHTML = '';
+ for(let r=0; r<GRID_SIZE; r++) {
+ for(let c=0; c<GRID_SIZE; c++) {
+ const cell = document.createElement('div');
+ cell.classList.add('cell');
+ cell.dataset.r = r;
+ cell.dataset.c = c;
+ gridEl.appendChild(cell);
+ }
+ }
+ }
 
-        function initGrid() {
-            gridEl.innerHTML = '';
-            for(let r=0; r<GRID_SIZE; r++) {
-                for(let c=0; c<GRID_SIZE; c++) {
-                    const cell = document.createElement('div');
-                    cell.classList.add('cell');
-                    cell.dataset.r = r;
-                    cell.dataset.c = c;
-                    gridEl.appendChild(cell);
-                }
-            }
-        }
+ window.spawnPieces = function() {
+ [0, 1, 2].forEach(i => {
+ const slot = document.getElementById(`slot-${i}`);
+ if (slot.childElementCount === 0) {
+ const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+ const imgUrl = ASSETS[Math.floor(Math.random() * ASSETS.length)];
+ createPiece(slot, shape.m, imgUrl);
+ }
+ });
+ checkGameOver();
+ }
 
-        window.spawnPieces = function() {
-            [0, 1, 2].forEach(i => {
-                const slot = document.getElementById(`slot-${i}`);
-                if (slot.childElementCount === 0) {
-                    const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-                    const imgUrl = ASSETS[Math.floor(Math.random() * ASSETS.length)];
-                    createPiece(slot, shape.m, imgUrl);
-                }
-            });
-            checkGameOver();
-        }
+ function getColorFromUrl(url) {
+ for(let key in COLORS) { if(url.includes(key)) return COLORS[key]; }
+ return '#64748b';
+ }
 
-        function getColorFromUrl(url) {
-            for(let key in COLORS) { if(url.includes(key)) return COLORS[key]; }
-            return '#64748b';
-        }
+ function createPiece(container, matrix, texture) {
+ const piece = document.createElement('div');
+ piece.classList.add('piece');
+ piece.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
+ piece.dataset.matrix = JSON.stringify(matrix);
+ piece.dataset.texture = texture;
+ piece.dataset.color = getColorFromUrl(texture);
 
-        function createPiece(container, matrix, texture) {
-            const piece = document.createElement('div');
-            piece.classList.add('piece');
-            piece.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
-            piece.dataset.matrix = JSON.stringify(matrix);
-            piece.dataset.texture = texture;
-            piece.dataset.color = getColorFromUrl(texture);
+ matrix.forEach(row => {
+ row.forEach(val => {
+ const block = document.createElement('div');
+ if (val) {
+ block.classList.add('piece-block');
+ block.style.backgroundImage = `url('${texture}')`;
+ block.style.backgroundColor = piece.dataset.color;
+ } else {
+ block.style.width = '38px'; block.style.height = '38px'; block.style.visibility = 'hidden';
+ }
+ piece.appendChild(block);
+ });
+ });
 
-            matrix.forEach(row => {
-                row.forEach(val => {
-                    const block = document.createElement('div');
-                    if (val) {
-                        block.classList.add('piece-block');
-                        block.style.backgroundImage = `url('${texture}')`;
-                        block.style.backgroundColor = piece.dataset.color;
-                    } else {
-                        block.style.width = '38px'; block.style.height = '38px'; block.style.visibility = 'hidden';
-                    }
-                    piece.appendChild(block);
-                });
-            });
+ piece.addEventListener('mousedown', startDrag);
+ piece.addEventListener('touchstart', startDrag, {passive: false});
+ container.appendChild(piece);
+ }
 
-            piece.addEventListener('mousedown', startDrag);
-            piece.addEventListener('touchstart', startDrag, {passive: false});
-            container.appendChild(piece);
-        }
+ // --- DRAG LOGIC (PRESISI TINGGI, dengan adjust offset untuk alignment tepat) ---
+ let dragged = null;
+ let startParent = null;
+ let matrix = null;
+ let texture = null;
+ let baseColor = null;
+ let pieceWidth = 0;
+ let pieceHeight = 0;
 
-        // --- DRAG LOGIC (PRESISI TINGGI dengan perbaikan) ---
-        let dragged = null;
-        let startParent = null;
-        let matrix = null;
-        let texture = null;
-        let baseColor = null;
+ function startDrag(e) {
+ e.preventDefault();
+ const evt = e.touches ? e.touches[0] : e;
+ dragged = e.currentTarget;
+ startParent = dragged.parentElement;
+ matrix = JSON.parse(dragged.dataset.matrix);
+ texture = dragged.dataset.texture;
+ baseColor = dragged.dataset.color;
 
-        function startDrag(e) {
-            e.preventDefault();
-            const evt = e.touches ? e.touches[0] : e;
-            dragged = e.currentTarget;
-            startParent = dragged.parentElement;
-            matrix = JSON.parse(dragged.dataset.matrix);
-            texture = dragged.dataset.texture;
-            baseColor = dragged.dataset.color;
+ dragged.classList.add('dragging');
+ 
+ // Hitung ukuran akurat
+ const cellRect = gridEl.querySelector('.cell').getBoundingClientRect();
+ const cellSize = cellRect.width;
+ const gap = parseFloat(getComputedStyle(gridEl).gap) || 4;
 
-            dragged.classList.add('dragging');
-            
-            // Samakan ukuran visual piece dengan ukuran grid saat di drag
-            const cellRect = gridEl.querySelector('.cell').getBoundingClientRect();
-            const cellSize = cellRect.width;
-            const gap = parseFloat(getComputedStyle(gridEl).gap);
-            dragged.style.gap = gap + 'px';
+ const blocks = dragged.querySelectorAll('.piece-block');
+ blocks.forEach(b => {
+ if (b.style.visibility !== 'hidden') {
+ b.style.width = cellSize + 'px';
+ b.style.height = cellSize + 'px';
+ }
+ });
+ dragged.style.gap = gap + 'px';
 
-            const blocks = dragged.querySelectorAll('.piece-block');
-            blocks.forEach(b => {
-                if (b.style.visibility !== 'hidden') {
-                    b.style.width = cellSize + 'px';
-                    b.style.height = cellSize + 'px';
-                }
-            });
+ // Hitung lebar dan tinggi piece
+ pieceWidth = matrix[0].length * cellSize + (matrix[0].length - 1) * gap;
+ pieceHeight = matrix.length * cellSize + (matrix.length - 1) * gap;
 
-            // Hitung ukuran piece secara dynamic
-            const pieceCols = matrix[0].length;
-            const pieceRows = matrix.length;
-            const pieceWidth = pieceCols * cellSize + (pieceCols - 1) * gap;
-            const pieceHeight = pieceRows * cellSize + (pieceRows - 1) * gap;
-            dragged.dataset.pieceWidth = pieceWidth;
-            dragged.dataset.pieceHeight = pieceHeight;
+ document.body.appendChild(dragged);
+ updatePosition(evt.clientX, evt.clientY);
 
-            document.body.appendChild(dragged);
-            updatePosition(evt.clientX, evt.clientY);
+ document.addEventListener('mousemove', moveDrag);
+ document.addEventListener('touchmove', moveDrag, {passive: false});
+ document.addEventListener('mouseup', endDrag);
+ document.addEventListener('touchend', endDrag);
+ }
 
-            document.addEventListener('mousemove', moveDrag);
-            document.addEventListener('touchmove', moveDrag, {passive: false});
-            document.addEventListener('mouseup', endDrag);
-            document.addEventListener('touchend', endDrag);
-        }
+ function moveDrag(e) {
+ e.preventDefault();
+ const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+ const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+ 
+ updatePosition(clientX, clientY);
+ 
+ const {r, c} = getGridPos(clientX, clientY);
+ document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+ 
+ if (r !== null && canPlace(r, c, matrix)) {
+ showHighlight(r, c, matrix);
+ }
+ }
 
-        function moveDrag(e) {
-            e.preventDefault();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            updatePosition(clientX, clientY);
-            
-            const {r, c} = getGridPos(clientX, clientY);
-            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
-            
-            if (r !== null && canPlace(r, c, matrix)) {
-                showHighlight(r, c, matrix);
-            }
-        }
+ function updatePosition(x, y) {
+ if(!dragged) return;
+ // Posisikan tengah block di X jari, dan Y naik ke atas
+ dragged.style.left = (x - (pieceWidth / 2)) + 'px';
+ dragged.style.top = (y - (pieceHeight / 2) - TOUCH_OFFSET_Y) + 'px'; 
+ }
 
-        function updatePosition(x, y) {
-            if(!dragged) return;
-            const pieceWidth = parseFloat(dragged.dataset.pieceWidth);
-            const pieceHeight = parseFloat(dragged.dataset.pieceHeight);
-            // Posisikan tengah block di X jari, dan Y naik ke atas
-            dragged.style.left = (x - (pieceWidth / 2)) + 'px';
-            dragged.style.top = (y - (pieceHeight / 2) - TOUCH_OFFSET_Y) + 'px'; 
-        }
+ function getGridPos(x, y) {
+ // Sembunyikan piece sebentar agar sensor bisa menembus ke papan
+ dragged.style.display = 'none';
+ // Cek elemen tepat di lokasi visual block (offset Y dengan adjust selisih max 5px)
+ const adjustedY = y - TOUCH_OFFSET_Y - HIGHLIGHT_OFFSET_ADJUST;
+ const targetEl = document.elementFromPoint(x, adjustedY);
+ dragged.style.display = 'grid'; 
 
-        function getGridPos(x, y) {
-            // Sembunyikan piece sebentar agar sensor bisa menembus ke papan
-            dragged.style.display = 'none';
-            // Cek elemen tepat di lokasi visual block (offset Y)
-            const targetEl = document.elementFromPoint(x, y - TOUCH_OFFSET_Y);
-            dragged.style.display = 'grid'; 
+ if (targetEl && targetEl.classList.contains('cell')) {
+ // Gunakan Math.round untuk pusat lebih akurat (untuk shape genap/ganjil)
+ const centerR = Math.round((matrix.length - 1) / 2);
+ const centerC = Math.round((matrix[0].length - 1) / 2);
+ const cellR = parseInt(targetEl.dataset.r);
+ const cellC = parseInt(targetEl.dataset.c);
+ return { r: cellR - centerR, c: cellC - centerC };
+ }
+ return { r: null, c: null };
+ }
 
-            if (targetEl && targetEl.classList.contains('cell')) {
-                const centerR = Math.floor(matrix.length / 2);
-                const centerC = Math.floor(matrix[0].length / 2);
-                const cellR = parseInt(targetEl.dataset.r);
-                const cellC = parseInt(targetEl.dataset.c);
-                return { r: cellR - centerR, c: cellC - centerC };
-            }
-            return { r: null, c: null };
-        }
+ function endDrag(e) {
+ const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+ const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+ 
+ const {r, c} = getGridPos(clientX, clientY);
+ document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
 
-        function endDrag(e) {
-            const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-            const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-            
-            const {r, c} = getGridPos(clientX, clientY);
-            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+ let placed = false;
+ if (r !== null && canPlace(r, c, matrix)) {
+ placePiece(r, c, matrix, texture, baseColor);
+ placed = true;
+ score += matrix.flat().filter(x=>x).length * 10;
+ updateScore();
+ checkLines();
+ dragged.remove();
+ spawnPieces();
+ }
 
-            let placed = false;
-            if (r !== null && canPlace(r, c, matrix)) {
-                placePiece(r, c, matrix, texture, baseColor);
-                placed = true;
-                score += matrix.flat().filter(x=>x).length * 10;
-                document.getElementById('score').innerText = score;
-                checkLines();
-                dragged.remove();
-                spawnPieces();
-            }
+ if (!placed) {
+ // Kembalikan ke dock dan reset ukuran
+ dragged.classList.remove('dragging');
+ dragged.style.position = '';
+ dragged.style.left = ''; dragged.style.top = ''; dragged.style.gap = '2px';
+ 
+ const blocks = dragged.querySelectorAll('.piece-block');
+ blocks.forEach(b => {
+ if(b.style.visibility !== 'hidden') {
+ b.style.width = '38px'; b.style.height = '38px';
+ }
+ });
+ startParent.appendChild(dragged);
+ }
 
-            if (!placed) {
-                // Kembalikan ke dock dan reset ukuran
-                dragged.classList.remove('dragging');
-                dragged.style.position = '';
-                dragged.style.left = ''; dragged.style.top = ''; dragged.style.gap = '2px';
-                
-                const blocks = dragged.querySelectorAll('.piece-block');
-                blocks.forEach(b => {
-                    if(b.style.visibility !== 'hidden') {
-                        b.style.width = '38px'; b.style.height = '38px';
-                    }
-                });
-                startParent.appendChild(dragged);
-            }
+ dragged = null;
+ document.removeEventListener('mousemove', moveDrag);
+ document.removeEventListener('touchmove', moveDrag);
+ document.removeEventListener('mouseup', endDrag);
+ document.removeEventListener('touchend', endDrag);
+ }
 
-            dragged = null;
-            document.removeEventListener('mousemove', moveDrag);
-            document.removeEventListener('touchmove', moveDrag);
-            document.removeEventListener('mouseup', endDrag);
-            document.removeEventListener('touchend', endDrag);
-        }
+ // --- GRID LOGIC ---
+ function canPlace(sr, sc, m) {
+ for(let r=0; r<m.length; r++) {
+ for(let c=0; c<m[0].length; c++) {
+ if(m[r][c]) {
+ if(sr+r < 0 || sc+c < 0 || sr+r >= GRID_SIZE || sc+c >= GRID_SIZE) return false;
+ if(grid[sr+r][sc+c] !== null) return false;
+ }
+ }
+ }
+ return true;
+ }
 
-        // --- GRID LOGIC ---
-        function canPlace(sr, sc, m) {
-            for(let r=0; r<m.length; r++) {
-                for(let c=0; c<m[0].length; c++) {
-                    if(m[r][c]) {
-                        if(sr+r < 0 || sc+c < 0 || sr+r >= GRID_SIZE || sc+c >= GRID_SIZE) return false;
-                        if(grid[sr+r][sc+c] !== null) return false;
-                    }
-                }
-            }
-            return true;
-        }
+ function showHighlight(sr, sc, m) {
+ for(let r=0; r<m.length; r++) {
+ for(let c=0; c<m[0].length; c++) {
+ if(m[r][c]) {
+ const cell = document.querySelector(`.cell[data-r="${sr+r}"][data-c="${sc+c}"]`);
+ if(cell) cell.classList.add('highlight');
+ }
+ }
+ }
+ }
 
-        function showHighlight(sr, sc, m) {
-            for(let r=0; r<m.length; r++) {
-                for(let c=0; c<m[0].length; c++) {
-                    if(m[r][c]) {
-                        const cell = document.querySelector(`.cell[data-r="${sr+r}"][data-c="${sc+c}"]`);
-                        if(cell) cell.classList.add('highlight');
-                    }
-                }
-            }
-        }
+ function placePiece(sr, sc, m, tex, col) {
+ for(let r=0; r<m.length; r++) {
+ for(let c=0; c<m[0].length; c++) {
+ if(m[r][c]) {
+ grid[sr+r][sc+c] = 1;
+ const cell = document.querySelector(`.cell[data-r="${sr+r}"][data-c="${sc+c}"]`);
+ cell.classList.add('filled', 'placed');
+ cell.style.backgroundImage = `url('${tex}')`;
+ cell.style.backgroundColor = col;
+ }
+ }
+ }
+ // Play sound dan vibrasi
+ if (navigator.vibrate) navigator.vibrate(50);
+ }
 
-        function placePiece(sr, sc, m, tex, col) {
-            for(let r=0; r<m.length; r++) {
-                for(let c=0; c<m[0].length; c++) {
-                    if(m[r][c]) {
-                        grid[sr+r][sc+c] = 1;
-                        const cell = document.querySelector(`.cell[data-r="${sr+r}"][data-c="${sc+c}"]`);
-                        cell.classList.add('filled');
-                        cell.style.backgroundImage = `url('${tex}')`;
-                        cell.style.backgroundColor = col; // Set warna background agar tidak bolong
-                        // Animasi placement: scale in
-                        cell.style.transform = 'scale(0)';
-                        setTimeout(() => { cell.style.transform = 'scale(1)'; }, 10);
-                    }
-                }
-            }
-            // Play sound dan vibrate
-            placeSound.play();
-            if ('vibrate' in navigator) navigator.vibrate(100);
-        }
+ function checkLines() {
+ let rows = [], cols = [];
+ for(let r=0; r<GRID_SIZE; r++) { if(grid[r].every(v => v !== null)) rows.push(r); }
+ for(let c=0; c<GRID_SIZE; c++) { 
+ let full = true;
+ for(let r=0; r<GRID_SIZE; r++) if(grid[r][c] === null) full = false;
+ if(full) cols.push(c);
+ }
 
-        function checkLines() {
-            let rows = [], cols = [];
-            for(let r=0; r<GRID_SIZE; r++) { if(grid[r].every(v => v !== null)) rows.push(r); }
-            for(let c=0; c<GRID_SIZE; c++) { 
-                let full = true;
-                for(let r=0; r<GRID_SIZE; r++) if(grid[r][c] === null) full = false;
-                if(full) cols.push(c);
-            }
+ let cleared = new Set();
+ rows.forEach(r => { for(let c=0; c<GRID_SIZE; c++) cleared.add(`${r},${c}`); });
+ cols.forEach(c => { for(let r=0; r<GRID_SIZE; r++) cleared.add(`${r},${c}`); });
 
-            let cleared = new Set();
-            rows.forEach(r => { for(let c=0; c<GRID_SIZE; c++) cleared.add(`${r},${c}`); });
-            cols.forEach(c => { for(let r=0; r<GRID_SIZE; r++) cleared.add(`${r},${c}`); });
+ if (cleared.size > 0) {
+ let multiplier = rows.length + cols.length;
+ score += (cleared.size * 10) * multiplier;
+ updateScore();
 
-            if (cleared.size > 0) {
-                let multiplier = rows.length + cols.length;
-                score += (cleared.size * 10) * multiplier;
-                document.getElementById('score').innerText = score;
+ cleared.forEach(coord => {
+ const [r, c] = coord.split(',');
+ grid[r][c] = null;
+ const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+ cell.classList.add('cleared');
+ createParticles(cell); // Tambah particle
+ setTimeout(() => {
+ cell.classList.remove('filled', 'cleared');
+ cell.style.backgroundImage = '';
+ cell.style.backgroundColor = '';
+ }, 300);
+ });
+ // Play sound dan vibrasi
+ if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+ }
+ }
 
-                // Play clear sound dan vibrate lebih kuat
-                clearSound.play();
-                if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+ // Fungsi update score dengan animasi
+ function updateScore() {
+ scoreEl.innerText = score;
+ scoreEl.classList.add('score-pop');
+ setTimeout(() => scoreEl.classList.remove('score-pop'), 200);
+ if(score > bestScore) {
+ localStorage.setItem('blockBlastBest', score);
+ bestScore = score;
+ document.getElementById('best-score').innerText = bestScore;
+ }
+ // Update skor ke DB secara real-time (setiap update score)
+ if(user) saveScoreToDB(score);
+ }
 
-                // Screen shake jika multiple lines
-                if (multiplier > 1) {
-                    gridEl.classList.add('shake');
-                    setTimeout(() => gridEl.classList.remove('shake'), 500);
-                }
+ // Fungsi particle simple (CSS-based)
+ function createParticles(cell) {
+ const rect = cell.getBoundingClientRect();
+ const colors = ['#ff0', '#f00', '#0f0', '#00f']; // Warna random
+ for (let i = 0; i < 10; i++) {
+ const particle = document.createElement('div');
+ particle.classList.add('particle');
+ particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+ particle.style.left = (rect.left + rect.width / 2) + 'px';
+ particle.style.top = (rect.top + rect.height / 2) + 'px';
+ const dx = (Math.random() - 0.5) * 100;
+ const dy = (Math.random() - 0.5) * 100;
+ particle.style.setProperty('--dx', dx + 'px');
+ particle.style.setProperty('--dy', dy + 'px');
+ document.body.appendChild(particle);
+ setTimeout(() => particle.remove(), 500);
+ }
+ }
 
-                cleared.forEach(coord => {
-                    const [r, c] = coord.split(',');
-                    grid[r][c] = null;
-                    const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
-                    cell.classList.add('cleared');
-                    // Tambah particles
-                    createParticles(cell);
-                    setTimeout(() => {
-                        cell.classList.remove('filled', 'cleared');
-                        cell.style.backgroundImage = '';
-                        cell.style.backgroundColor = '';
-                    }, 300);
-                });
-            }
-        }
+ function checkGameOver() {
+ const slots = document.querySelectorAll('.dock-slot .piece');
+ if(slots.length === 0) return;
 
-        // Fungsi untuk create simple particles
-        function createParticles(cell) {
-            const rect = cell.getBoundingClientRect();
-            for (let i = 0; i < 10; i++) {
-                const particle = document.createElement('div');
-                particle.classList.add('particle');
-                particle.style.left = rect.left + rect.width / 2 + 'px';
-                particle.style.top = rect.top + rect.height / 2 + 'px';
-                particle.style.setProperty('--dx', Math.random() * 100 - 50 + 'px');
-                particle.style.setProperty('--dy', Math.random() * 100 - 50 + 'px');
-                document.body.appendChild(particle);
-                setTimeout(() => particle.remove(), 500);
-            }
-        }
+ let possible = false;
+ slots.forEach(p => {
+ const m = JSON.parse(p.dataset.matrix);
+ for(let r=0; r<GRID_SIZE; r++) {
+ for(let c=0; c<GRID_SIZE; c++) {
+ if(canPlace(r, c, m)) possible = true;
+ }
+ }
+ });
 
-        function checkGameOver() {
-            const slots = document.querySelectorAll('.dock-slot .piece');
-            if(slots.length === 0) return;
+ if(!possible) {
+ setTimeout(() => {
+ document.getElementById('modal-gameover').style.display = 'flex';
+ document.getElementById('final-score').innerText = score;
+ if(score > bestScore) {
+ localStorage.setItem('blockBlastBest', score);
+ bestScore = score;
+ document.getElementById('best-score').innerText = bestScore;
+ }
+ if(user) saveScoreToDB(score);
+ }, 1000);
+ }
+ }
 
-            let possible = false;
-            slots.forEach(p => {
-                const m = JSON.parse(p.dataset.matrix);
-                for(let r=0; r<GRID_SIZE; r++) {
-                    for(let c=0; c<GRID_SIZE; c++) {
-                        if(canPlace(r, c, m)) possible = true;
-                    }
-                }
-            });
+ window.resetGame = function() {
+ score = 0;
+ updateScore();
+ grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+ initGrid();
+ document.getElementById('dock').innerHTML = `
+ <div class="dock-slot" id="slot-0"></div>
+ <div class="dock-slot" id="slot-1"></div>
+ <div class="dock-slot" id="slot-2"></div>
+ `;
+ document.getElementById('modal-gameover').style.display = 'none';
+ spawnPieces();
+ }
 
-            if(!possible) {
-                setTimeout(() => {
-                    gameOverSound.play();
-                    if ('vibrate' in navigator) navigator.vibrate(500);
-                    document.getElementById('modal-gameover').style.display = 'flex';
-                    document.getElementById('final-score').innerText = score;
-                    if(score > bestScore) {
-                        localStorage.setItem('blockBlastBest', score);
-                        bestScore = score;
-                        document.getElementById('best-score').innerText = bestScore;
-                    }
-                    if(user) saveScoreToDB(score);
-                }, 1000);
-            }
-        }
+ // START
+ initGrid();
+ spawnPieces();
 
-        window.resetGame = function() {
-            score = 0;
-            document.getElementById('score').innerText = '0';
-            grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
-            initGrid();
-            document.getElementById('dock').innerHTML = `
-                <div class="dock-slot" id="slot-0"></div>
-                <div class="dock-slot" id="slot-1"></div>
-                <div class="dock-slot" id="slot-2"></div>
-            `;
-            document.getElementById('modal-gameover').style.display = 'none';
-            spawnPieces();
-            bgMusic.play().catch(() => {});
-        }
-
-        // START
-        initGrid();
-        spawnPieces();
-
-    </script>
+ </script>
 </body>
 </html>
+``` 
